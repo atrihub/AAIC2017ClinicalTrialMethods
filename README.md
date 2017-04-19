@@ -19,7 +19,6 @@ Dr. Donohue
 1. Repeated measures/longitudinal/correlated data
 2. t-test
 3. Regression
-<<<<<<< HEAD
     1. outcome/response variables
     2. predictors/covariates
 4. ANCOVA
@@ -27,26 +26,12 @@ Dr. Donohue
 6. LME mean structure
     1. Continuous time (linear & quadratic)
     2. Categorical time
-=======
-  1. outcome/response variables
-  2. predictors/covariates
-4. ANCOVA
-5. Linear mixed effects (LME) models
-6. LME mean structure
-  1. Continuous time (linear & quadratic)
-  2. Categorical time
->>>>>>> 1b2007b3af34853548cebb0ccbca0d5210b30b4e
 
 **Hour 2**
 
 1. LME correlation structure
-<<<<<<< HEAD
     1. Random effects
     2. Marginal models (generalized least squares)
-=======
-  1. Random effects
-  2. Marginal models (generalized least squares)
->>>>>>> 1b2007b3af34853548cebb0ccbca0d5210b30b4e
 2. Missing data: MAR, MCAR, MNAR
 3. Multiple imputation
 
@@ -60,7 +45,6 @@ Dr. Donohue
 Dr. Leoutsakos
 
 1. Basics of Hypothesis Testing
-<<<<<<< HEAD
     1. Relationship between sample (what you have) and population (what you make an inference about)
     2. Null and Alternate hypotheses
     3. Type I error, Type II errors
@@ -76,23 +60,6 @@ Dr. Leoutsakos
         2. Demonstration of code for mixed effects model (slope comparison)
         3. Demonstration of code for MMRM
         4. (Brief) enumeration of the assumptions made in simulations
-=======
-  1. Relationship between sample (what you have) and population (what you make an inference about)
-  2. Null and Alternate hypotheses
-  3. Type I error, Type II errors
-  4. What is alpha, beta/power, what is a p-value?
-  5. How to boost power? (N, precision, effect size)
-2. Fundamentals of Simulation
-  1. Brief introduction to R
-      1. R Cran Website
-      2. Basic commands: assignment, matrices, random draws/setting seed, loops, fitting a model.
-  2. Simulating data under the null to obtain alpha
-  3. Simulating data under one or more alternate hypotheses to obtain beta/power
-      1. Choosing which alternate hypotheses to simulate
-      2. Demonstration of code for mixed effects model (slope comparison)
-      3. Demonstration of code for MMRM
-      4. (Brief) enumeration of the assumptions made in simulations
->>>>>>> 1b2007b3af34853548cebb0ccbca0d5210b30b4e
 
 ## LUNCH BREAK
 11:50pm – 1:00 pm
@@ -106,7 +73,6 @@ Dr. Leoutsakos
 **Sample Enrichment**
 
 1. Understanding a sample as (probably) arising from a mixture of populations
-<<<<<<< HEAD
     2. Evidence from Cache County DPS and elsewhere (?) showing variability in course of dementia, as compared to clinic samples. 
 2. Sample enrichment as one means of boosting power
     1. Through changes in precision
@@ -116,17 +82,6 @@ Dr. Leoutsakos
     2. Enrichment may limit sample to a very specific subpopulation, with regard to type and/or stage of disease.
     3. Treatments may be effective for only a specific stage and/or type of disease. Enrichment may exclude the subjects for whom the treatment might have been successful.
     4. Other general issues of reproducibility/generalizability.
-=======
-  2. Evidence from Cache County DPS and elsewhere (?) showing variability in course of dementia, as compared to clinic samples. 
-2. Sample enrichment as one means of boosting power
-  1. Through changes in precision
-  2. Through changes in effect size 
-3. Demonstrating possible effects of sample enrichment through simulation
-  1. Enumeration of assumptions in enrichment simulations
-  2. Enrichment may limit sample to a very specific subpopulation, with regard to type and/or stage of disease.
-  3. Treatments may be effective for only a specific stage and/or type of disease. Enrichment may exclude the subjects for whom the treatment might have been successful.
-  4. Other general issues of reproducibility/generalizability.
->>>>>>> 1b2007b3af34853548cebb0ccbca0d5210b30b4e
 
 ## SESSION III
 2:00pm – 4:10pm (with 10 minutes break in the middle)  
