@@ -1,0 +1,1186 @@
+<<packages, results = 'hide', echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE, results = 'hide'>>=
+knit_hooks$set(crop=hook_pdfcrop)
+opts_chunk$set(fig.path='figure/', echo = FALSE, message = FALSE, warning = FALSE,
+ fig.width=6, fig.height=6/1.8, fig.align = 'center', tidy = FALSE, comment = NA,
+ cache = FALSE, cache.path = 'cache/', out.width = '5.5in', crop = TRUE)
+
+library(ggplot2)
+options(digits = 3, stringsAsFactors = FALSE, width = 120)
+
+theme_set(theme_bw(base_size = 12))
+# The palette with black:
+cbbPalette <- c("#0072B2", "#D55E00", "#CC79A7", "#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442")
+# dxpal <- c("#2b8cbe", "#74a9cf", "#fdcc8a", "#fc8d59","#e34a33")
+# dx3pal <- c("#2b8cbe", "#fc8d59","#e34a33")
+# dx_colour <- function(...) scale_colour_manual(..., values=dxpal)
+# dx_fill <- function(...) scale_fill_manual(..., values=dxpal)
+# dx3_colour <- function(...) scale_colour_manual(..., values=dx3pal)
+# dx3_fill <- function(...) scale_fill_manual(..., values=dx3pal)
+scale_colour_discrete <- function(...) scale_colour_manual(..., values=cbbPalette)
+scale_fill_discrete <- function(...) scale_fill_manual(..., values=cbbPalette)
+@
+
+
+\documentclass[aspectratio=1610]{beamer}\usepackage[]{graphicx}\usepackage[]{color}
+
+\usepackage{alltt}
+\usetheme{Frankfurt}
+\usecolortheme{dove}  
+\usefonttheme{professionalfonts}
+  
+% \usepackage[
+%   activate={true,nocompatibility},
+%   final,
+%   tracking=true,
+%   factor=1200,
+%   stretch=50,
+%   shrink=0
+%   ]{microtype}
+  
+\useinnertheme{circles}
+\usepackage{mathpazo}
+% \usepackage[T1]{fontenc}
+% \usepackage{librecaslon}
+% \usepackage[scaled=.95]{helvet}% uncomment these if required
+% \usepackage{courier}
+% \usepackage{overpic}
+% \usepackage{CJKutf8} % for japanese
+% \renewcommand{\sfdefault}{lmss}
+% \renewcommand{\ttdefault}{lmtt}
+\usepackage{url}
+\usepackage{tikz} 
+\usepackage{animate} 
+\usepackage{color}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{mathtools} % for floor/ceiling functions
+\usepackage{bm} % for floor/ceiling functions
+\RequirePackage[pdftex, pdfpagemode = none, 
+   pdftoolbar = true, pdffitwindow = true, 
+   pdfcenterwindow = true]{hyperref}\providecommand{\shadeRow}{\rowcolor[gray]{0.75}}
+
+\DeclareMathOperator{\Dist}{Dist}
+\DeclareMathOperator{\sd}{SD}
+\DeclareMathOperator{\se}{SE}
+\DeclareMathOperator{\var}{var}
+\DeclareMathOperator{\cov}{cov}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator{\Unif}{Unif}
+
+\DeclareMathOperator{\age}{age}
+\DeclareMathOperator{\dAge}{dAge}
+\DeclareMathOperator{\apoe}{apoe}
+\DeclareMathOperator{\edu}{edu}
+\DeclareMathOperator{\sex}{sex}
+
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+\DeclarePairedDelimiter{\floor}{\lfloor}{\rfloor}
+
+\newcommand{\APOE}{\emph{APOE}$\varepsilon$4 }
+\newcommand{\Trt}{\textrm{Trt}}
+\newcommand{\bbeta}{{\boldsymbol\beta}}%
+\newcommand{\pphi}{{\boldsymbol\phi}}%
+\newcommand{\eeta}{{\boldsymbol\eta}}%
+\newcommand{\xxi}{{\boldsymbol\xi}}%
+\newcommand{\nnu}{{\boldsymbol\nu}}%
+\newcommand{\ggamma}{{\boldsymbol\gamma}}%
+\newcommand{\gami}{\gamma_i}%
+\newcommand{\llambda}{{\boldsymbol\lambda}}%
+\newcommand{\B}{\mathcal{B}}
+\newcommand{\e}{\pmb{e}}
+\newcommand{\E}{\pmb{E}}
+\newcommand{\inv}{^{-1}}
+\newcommand{\LL}{\pmb{L}}
+\newcommand{\N}{\mathcal{N}}
+\newcommand{\p}{\pmb{P}}
+\newcommand{\R}{\texttt{R} }
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\bb}{\pmb{\mathrm{b}}}%
+\newcommand{\vv}{\pmb{\mathrm{v}}}%
+\newcommand{\w}{\pmb{\mathrm{w}}}%
+\newcommand{\x}{\pmb{\mathrm{x}}}%
+\newcommand{\z}{\pmb{\mathrm{z}}}%
+\newcommand{\X}{\pmb{X}}
+\newcommand{\XI}{{\boldsymbol\xi}}
+\newcommand{\Y}{\pmb{Y}}
+\newcommand{\f}{\pmb{f}}
+\newcommand{\tp}{^\intercal}
+\newcommand{\as}{\stackrel{a.s.}{\rightarrow}}
+\newcommand{\ip}{\stackrel{P}{\rightarrow}}
+%% Dan Li's commands:
+%% define command %%
+\newcommand{\VS}{V\&S}
+\newcommand{\tr}{\mbox{tr}}
+\newcommand{\NA}{---}
+\newcommand{\bzero}{\textbf{0}}
+\newcommand{\bones}{\textbf{1}}
+\newcommand{\ba}{\textbf{a}}
+\newcommand{\bA}{\textbf{A}}
+\newcommand{\bb}{\textbf{b}}
+\newcommand{\bd}{\textbf{d}}
+\newcommand{\bc}{\textbf{c}}
+\newcommand{\bC}{\textbf{C}}
+\newcommand{\bD}{\textbf{D}}
+\newcommand{\be}{\textbf{e}}
+\newcommand{\bE}{\textbf{E}}
+\newcommand{\bF}{\textbf{F}}
+\newcommand{\bff}{\textbf{f}}
+\newcommand{\bk}{\textbf{k}}
+\newcommand{\bK}{\textbf{K}}
+\newcommand{\bh}{\textbf{h}}
+\newcommand{\bH}{\textbf{H}}
+\newcommand{\bI}{\textbf{I}}
+\newcommand{\bM}{\textbf{M}}
+\newcommand{\bn}{\textbf{n}}
+\newcommand{\bp}{\textbf{p}}
+\newcommand{\bP}{\textbf{P}}
+\newcommand{\bQ}{\textbf{Q}}
+\newcommand{\bR}{\textbf{R}}
+\newcommand{\br}{\textbf{r}}
+\newcommand{\bS}{\textbf{S}}
+\newcommand{\bs}{\textbf{s}}
+\newcommand{\bT}{\textbf{T}}
+\newcommand{\bt}{\textbf{t}}
+\newcommand{\bu}{\textbf{u}}
+\newcommand{\bv}{\textbf{v}}
+\newcommand{\bV}{\textbf{V}}
+\newcommand{\bw}{\textbf{w}}
+\newcommand{\bW}{\textbf{W}}
+\newcommand{\bx}{\textbf{x}}
+\newcommand{\bX}{\textbf{X}}
+\newcommand{\by}{\textbf{y}}
+\newcommand{\bY}{\textbf{Y}}
+\newcommand{\bz}{\textbf{z}}
+\newcommand{\bZ}{\textbf{Z}}
+\newcommand{\blam}{ \mbox{\boldmath $ \lambda $} }
+\newcommand{\bet}{ \mbox{\boldmath $ \eta $} }
+\newcommand{\bome}{ \mbox{\boldmath $ \omega $} }
+\newcommand{\bbeta}{ \mbox{\boldmath $ \beta $} }
+\newcommand{\balph}{ \mbox{\boldmath $ \alpha $} }
+\newcommand{\balpha}{ \mbox{\boldmath $ \alpha $} }
+\newcommand{\bphi}{ \mbox{\boldmath $\phi$}}
+\newcommand{\bzeta}{ \mbox{\boldmath $\zeta$}}
+\newcommand{\bkap}{ \mbox{\boldmath $\kappa$}}
+\newcommand{\bkappa}{ \mbox{\boldmath $\kappa$}}
+\newcommand{\beps}{ \mbox{\boldmath $\epsilon$}}
+\newcommand{\bepsilon}{ \mbox{\boldmath $\epsilon$}}
+\newcommand{\bthet}{ \mbox{\boldmath $ \theta $} }
+\newcommand{\btheta}{ \mbox{\boldmath $ \theta $} }
+\newcommand{\bnu}{ \mbox{\boldmath $\nu$} }
+\newcommand{\bmu}{ \mbox{\boldmath $\mu$} }
+\newcommand{\bGam}{ \mbox{\boldmath $\Gamma$} }
+\newcommand{\bxi}{ \mbox{\boldmath $\xi$} }
+\newcommand{\bsig}{ \mbox{\boldmath $\sigma$} }
+\newcommand{\bsigma}{ \mbox{\boldmath $\sigma$} }
+\newcommand{\bSig}{ \mbox{\boldmath $\Sigma$} }
+\newcommand{\bSigma}{ \mbox{\boldmath $\Sigma$} }
+\newcommand{\bPhi}{ \mbox{\boldmath $\Phi$} }
+\newcommand{\bPsi}{ \mbox{\boldmath $\Psi$} }
+\newcommand{\bThet}{ \mbox{\boldmath $\Theta$} }
+\newcommand{\bTheta}{ \mbox{\boldmath $\Theta$} }
+\newcommand{\bDel}{ \mbox{\boldmath $\Delta$} }
+\newcommand{\bDelta}{ \mbox{\boldmath $\Delta$} }
+\newcommand{\bnabla}{ \mbox{\boldmath $\nabla$} }
+\newcommand{\blambda}{ \mbox{\boldmath $\lambda$} }
+\newcommand{\bLambda}{ \mbox{\boldmath $\Lambda$} }
+\newcommand{\bgam}{ \mbox{\boldmath $\gamma$} }
+\newcommand{\bgamma}{ \mbox{\boldmath $\gamma$} }
+\newcommand{\brho}{ \mbox{\boldmath $\rho$} }
+\newcommand{\bdel}{ \mbox{\boldmath $\delta$} }
+\newcommand{\bdelta}{ \mbox{\boldmath $\delta$} }
+\newcommand{\bOmega}{ \mbox{\boldmath $\Omega$} }
+\newcommand{\btau}{ \mbox{\boldmath $\tau$} }
+\newcommand{\bupsilon}{ \mbox{\boldmath $\upsilon$} }
+\newcommand{\bpi}{ \mbox{\boldmath $\pi$} }
+\newcommand{\bvarphi}{ \mbox{\boldmath $\varphi$} }
+\newcommand{\tp}{^\intercal}
+\newcommand{\tps}{^{*\intercal}}
+\newcommand{\N}{\mathcal{N}}
+
+\newcommand{\foot}{\let\thefootnote\relax\footnotetext}
+
+\definecolor{BrickRed}{RGB}{150,22,11}
+\definecolor{DarkBlue}{RGB}{0,0,205}
+\definecolor{light-gray}{gray}{0.9}
+\definecolor{uscyellow}{HTML}{E9A000}
+\definecolor{uscred}{HTML}{990000}
+
+\makeatother
+
+\title{Contemporary Issues in Clinical Trials Methods\\
+Longitudinal Data Analysis Part I}
+\author{Michael Donohue}
+\institute{
+Alzheimer's Therapeutic Research Institute\\
+Department of Neurology\\
+University of Southern California}
+
+\date{July 14, 2017}
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+
+% remove navigation symbols
+\usenavigationsymbolstemplate{}
+\setbeamertemplate{footline}[frame number]
+
+\begin{document}
+
+\setbeamertemplate{background}{
+  \begin{minipage}[h]{6in}
+     \vspace*{3.25in}\\
+     \hspace*{0.25in}\includegraphics[height=0.5in]{manual_figure/watermark.pdf}\\
+     \vspace*{-0.3in}\\
+     \hspace*{0.25in}\textcolor{light-gray}{{\tiny USC ATRI}}
+  \end{minipage}
+}
+
+\maketitle
+
+\setbeamertemplate{background}{}
+
+% 1. Repeated measures/longitudinal/correlated data
+% 2. t-test
+% 3. Regression
+%     1. outcome/response variables
+%     2. predictors/covariates
+% 4. ANCOVA
+% 5. Linear mixed effects (LME) models
+% 6. LME mean structure
+%     1. Continuous time (linear & quadratic)
+%     2. Categorical time
+
+\section[Setup]{Setup}
+
+\begin{frame}[fragile]  
+\frametitle{Learning objectives}
+\begin{itemize}
+\item Define \underline{repeated measures}/\underline{longitudinal data}
+\item Identify \underline{study designs} which give rise to longitudinal data
+\item Identify different \underline{analysis methods} that are available
+\item Appreciate the complexities of \underline{proper analysis} of longitudinal data
+\item Analyze data with \underline{ANCOVA} and \underline{linear mixed-effects models}
+% \item Appreciate the problem of \underline{missing data}
+% \item Identify different \underline{types} of missing data
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]  
+\frametitle{Further reading}
+\begin{itemize}
+\item Diggle, P., Heagerty, P., Liang, K.-Y., Zeger, S. (2002). \emph{Analysis of Longitudinal Data}. Oxford University Press
+\item Verbeke, G. and Molenberghs, G. (2000). \emph{Linear Mixed Models for Longitudinal
+Data}. Springer Series in Statistics. New-York: Springer.
+\item Molenberghs, G. and Kenward, M.G. (2007). \emph{Missing Data in Clinical Studies}. Wiley.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]  
+\frametitle{\R packages}
+Follow along in \R is not required, but we will use:
+<<eval = TRUE, echo = TRUE, message=FALSE, warning=FALSE>>=
+library(Hmisc)
+library(tidyverse)
+library(ggplot2)
+library(nlme)
+library(contrast)
+@
+If you do not have them installed already, you will need to download them from CRAN via:
+<<eval = FALSE, echo = TRUE>>=
+install.packages(c("tidyverse", "Hmisc", "ggplot2", "nlme", "contrast"))
+@
+See \texttt{01LDA.R} for source code.
+% \let\thefootnote\relax\footnotetext{Good examples with \texttt{ggplot2}: \href{http://www.cookbook-r.com/Graphs/}{cookbook-r.com/Graphs}}
+\end{frame}
+
+\begin{frame}[fragile]  
+\frametitle{Repeated Measures/Longitudinal Data}
+
+\centering{\fbox{\parbox{0.8\linewidth}{%
+  Repeated measures are obtained when a response is measured
+  \textbf{repeatedly} on a set of \textbf{observational units}
+}}}
+
+\flushleft
+Observational Units:
+\begin{itemize}
+  \item Subjects, patients, participants, \ldots
+  \item Animals, plants, \ldots
+  \item Clusters: universities, hospitals, clinical sites, towns, families, sets of twins, \ldots
+\end{itemize}
+\textbf{Longitudinal data} is a special (and popular) case of repeated measures in which the same observational unit is observed \textbf{over time}
+
+\textbf{Pre- post-treatment} designs are a special (and popular) case of longitudinal data
+\end{frame}
+
+% <<echo=FALSE, eval=FALSE>>=
+% library(ADNIMERGE)
+% fit <- lme(ADAS13 ~ PTGENDER + AGE + M, adnimerge, ~M|RID, subset = M<=18 & DX.bl=='AD', na.action=na.omit)
+% fit <- lme(ADAS13 ~ female + age + month + month:active, trial, ~month|id, subset = !missing)
+% @
+
+\begin{frame}[fragile]
+\frametitle{Let's generate some data$\ldots$}
+We simulate a randomized clinical trial with
+\begin{itemize}
+  \item $n=200$ mild to moderate dementia subjects per group
+  \item Alzheimer's Disease Assessment Scale (ADAS-Cog13) assessed at 0, 6, 12, 18 months
+  \item Weak effects for age and sex (based on ADNI pilot estimates)
+  \item A treatment which slows ADAS-Cog13 progression by 25\%
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Let's generate some data$\ldots$}
+First set some parameters:
+<<generate_data1, echo=TRUE>>=
+# fixed effects parameters
+Beta <- c('(Intercept)'=31.6, # mean ADAS at baseline
+  female=-0.63, age=0.01,     # weak effects for sex and age
+  month=0.44,                 # increase in ADAS per month in controls
+  'month:active'=-0.11)       # relative slowing in active group
+
+# random effects variance parameters
+sigma_random_intercept <- 7.3
+sigma_random_slope <- 0.45
+sigma_residual <- 3.4
+
+# other design parameters
+months <- c(0, 6, 12, 18)
+n <- 200 # per group
+attrition_rate <- 0.05
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Let's generate some data$\ldots$}
+{\footnotesize
+<<generate_data2, echo=TRUE>>=
+set.seed(20170701)
+
+subjects <- data.frame(
+  id = 1:(2*n),
+  active = sample(c(rep(0,n), rep(1,n)), 2*n),
+  female = sample(0:1, 2*n, replace=TRUE),
+  age = rnorm(2*n, 75, 7.8),
+  censor = rexp(2*n,rate=attrition_rate),
+  ran.intercept = rnorm(2*n, sd=sigma_random_intercept),
+  ran.slope     = rnorm(2*n, sd=sigma_random_slope))
+
+trial <- right_join(subjects, 
+  expand.grid(id = 1:(2*n), month=months)) %>%
+  mutate(
+    residual = rnorm(2*n*length(months), sd=sigma_residual),
+    group = factor(active, 0:1, c('placebo', 'active')),
+    missing = ifelse(month>censor, 1, 0)) %>%
+  arrange(id, month)
+@
+}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Let's generate some data$\ldots$}
+{\footnotesize
+<<generate_data3, echo=TRUE>>=
+trial$ADAS13 <- round(
+  model.matrix(~ female+age+month+month:active, data = trial)[, names(Beta)] %*% 
+  Beta +
+  with(trial, ran.intercept + ran.slope*month + residual), 
+  digits = 0
+)[,1]
+@
+}
+{\tiny
+<<>>=
+head(trial)
+@
+}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Let's generate some data$\ldots$}
+{\footnotesize
+<<generate_data4, echo=TRUE>>=
+# filter out the missing observations
+trial_obs <- filter(trial, !missing)
+
+# transfrom data from long to wide
+trial_wide <- trial_obs %>%
+  select(id, month, female, age, active, group, ADAS13) %>% 
+  mutate(month = paste0('ADAS13.m', month)) %>%
+  spread(month, ADAS13)
+
+# data for MMRM
+trial_mmrm <- right_join(
+  select(trial_wide, id, ADAS13.m0), 
+  filter(trial_obs, month>0))
+@
+}
+{\tiny
+<<>>=
+head(trial_obs)
+@
+}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Baseline characteristics}
+{\footnotesize
+<<results='asis'>>=
+latex(summary(group ~ female + age + ADAS13, data = trial_obs, subset = month == 0, 
+  method='reverse'), prmsd=TRUE, file='')
+@
+}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Spaghetti plot}
+{\footnotesize
+<<spaghetti_plot>>=
+ggplot(trial_obs, aes(x=month, y=ADAS13, group=id, color=group)) + 
+  geom_line(alpha=0.25) +
+  geom_smooth(aes(group = NULL), method = 'lm', size = 2)
+@
+}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Basic longitudinal summaries of ADAS13}
+<<>>=
+summaryTable <- trial_obs %>% 
+  group_by(group, month) %>%
+  summarise(
+    n=length(ADAS13),
+    mean=mean(ADAS13),
+    sd=sd(ADAS13),
+    lower95 = smean.cl.normal(ADAS13)[['Lower']],
+    upper95 = smean.cl.normal(ADAS13)[['Upper']],
+    min=min(ADAS13),
+    max=max(ADAS13))
+print(as.data.frame(summaryTable), row.names=FALSE)
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Mean plot}
+<<meanplot>>=
+ggplot(summaryTable, aes(x=month, y=mean, color=group)) +
+  geom_line() +
+  geom_errorbar(aes(min=lower95, max=upper95), position=position_dodge(0.2), width=0)
+@
+\end{frame}
+
+\section[$t$-test]{$t$-test}
+
+\begin{frame}[fragile]
+\frametitle{Two sample $t$-test of group difference at month 18 (completers analysis)}
+<<>>=
+m1 <- subset(summaryTable, group=='active' & month==18)[['mean']]
+m2 <- subset(summaryTable, group=='placebo' & month==18)[['mean']]
+n1 <- subset(summaryTable, group=='active' & month==18)[['n']]
+n2 <- subset(summaryTable, group=='placebo' & month==18)[['n']]
+sd1 <- subset(summaryTable, group=='active' & month==18)[['sd']]
+sd2 <- subset(summaryTable, group=='placebo' & month==18)[['sd']]
+s <- sqrt(((n1-1)*sd1^2 + (n2-1)*sd2^2)/(n1+n2-2))
+tt <- (m2-m1)/(s*sqrt(1/n2 + 1/n1)) 
+DF <- n1+n2-2
+@
+
+\begin{itemize}
+  \item Difference between group means is
+    \Sexpr{m2} - \Sexpr{m1} = \Sexpr{m2-m1}
+  \item (pooled) standard deviation is \Sexpr{s}
+  \item $t = \frac{\Sexpr{m2-m1}}{\Sexpr{s}\sqrt{\frac{1}{\Sexpr{n2}} + \frac{1}{\Sexpr{n1}}}} = 
+    \Sexpr{tt}$
+  \item \Sexpr{n2} + \Sexpr{n1} - 2 = \Sexpr{DF} ``degrees of freedom''
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{$t$-test}
+<<echo=FALSE>>=
+print(t.test(ADAS13 ~ group, data = trial_obs, subset = month==18, 
+  var.equal=TRUE), digits = 6)
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{The $t_{\Sexpr{DF}}$-distribution}
+$p$-value is area under curve for $|x|>\Sexpr{abs(tt)}$, the value of the test statistic in this case.
+<<>>=
+x <- seq(-5, 5, by = 0.01)
+dens <- data.frame(
+	x        =  x,
+	density  = dt(x, df = DF)
+)
+shadel <- rbind(
+  c(x=-5, y=0),
+  filter(dens, x <= -abs(tt)),
+  c(x=-abs(tt),0))
+shadeu <- rbind(
+  c(x=abs(tt),0),
+  filter(dens, x >= abs(tt)),
+  c(x=5, y=0))
+ggplot(dens, aes(x=x, y=density)) + geom_line() +
+  geom_polygon(data = shadel, aes(x=x, y=density)) +
+  geom_polygon(data = shadeu, aes(x=x, y=density))
+@
+\end{frame}
+
+\section[Regression]{Regression}
+
+\begin{frame}[fragile]
+\frametitle{Regression analysis}
+\begin{itemize}
+  \item ``\underline{Regression}'' generally refers to a relationship between variables that is estimated by data
+  \item ``\underline{Ordinary Least Squares}" regression, for example, describes a linear relationship between two continuous variables that is estimated by the line that minimizes the sum of squared ``residuals''
+  \item ``\underline{Residuals}'' are the differences between observations and values predicted by the regression
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Ordinary Least Squares}
+<<fig.show='animate'>>=
+lmfit <- lm(ADAS13.m18 ~ ADAS13.m0, data = trial_wide)
+Fitted <- predict(lmfit)
+
+Coef <- lmfit$coef + c(-3, 0.1)*10
+
+for(i in 1:10){
+  Coef <- Coef + c(3, -0.1)
+  Fitted <- as.matrix(cbind(1, filter(trial_wide, !is.na(ADAS13.m18))['ADAS13.m0'])) %*% Coef
+  p <- ggplot(filter(trial_wide, !is.na(ADAS13.m18)), aes(x=ADAS13.m0, y=ADAS13.m18)) + 
+    geom_point() + geom_abline(intercept=Coef[1], slope=Coef[2]) +
+    xlab('ADAS13 at baseline') +
+    ylab('ADAS13 at 18 months') +
+    geom_segment(aes(x=ADAS13.m0, y=ADAS13.m18, 
+      xend=ADAS13.m0, yend=Fitted), alpha=0.25) +
+    ylim(range(trial_wide$ADAS13.m18, na.rm=TRUE))
+  print(p)
+}
+
+p <- ggplot(filter(trial_wide, !is.na(ADAS13.m18)), aes(x=ADAS13.m0, y=ADAS13.m18)) + 
+  geom_point() + geom_smooth(method='lm') +
+  xlab('ADAS13 at baseline') +
+  ylab('ADAS13 at 18 months') +
+  geom_segment(aes(x=ADAS13.m0, y=ADAS13.m18, 
+    xend=ADAS13.m0, yend=Fitted), alpha=0.25) +
+  ylim(range(trial_wide$ADAS13.m18, na.rm=TRUE))
+print(p)
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Other types of regression}
+\begin{itemize}
+  \item ``\underline{General linear models}'' can add multiple \emph{covariates/predictors}
+  \item ``\underline{Generalized linear models}" can accomodate other types of \emph{outcome/response} variables (e.g. logistic regression can accomodate binary outcome variables)
+  \item ``\underline{Mixed-effects models}" mix \emph{random effects} with the standard \emph{fixed effects} to account for complex correlation structures
+\end{itemize}
+All regression models share the common theme of estimating the best fit relationship between
+\emph{outcome/response} variables and \emph{covariates/predictors}
+\end{frame}
+
+\section[ANCOVA]{ANCOVA}
+
+\begin{frame}[fragile]
+\frametitle{ANalysis of COVAriance (ANCOVA) for ``\emph{pre-post}'' data}
+\begin{itemize}
+  \item Very common for two groups, and \underline{\emph{one}} post- assessment
+  \item $Y_{i1}$: baseline or pre- observation
+  \item $Y_{i2}$: followup or post- observation
+  \item $\Trt_i$: treatment group indicator (e.g. 1 if active, 0 if placebo)
+  \item \underline{ANCOVA I}: $Y_{i2} = \beta_0 + \Trt_i\beta_1 + Y_{i1}\beta_2 + \varepsilon_i$
+  \begin{itemize}
+    \item Includes effect for the outcome at baseline
+    \item $\beta_1$ is the effect of interest
+  \end{itemize}
+  \item \underline{ANCOVA II}: $Y_{i2} = \beta_0 + \Trt_i\beta_1 + Y_{i1}^*\beta_2 + \Trt_iY_{i1}^*\beta_3 + \varepsilon_i$
+  \begin{itemize}
+    \item Includes additional effect for the interaction between treatment and outcome at baseline
+    \item $\beta_1$ is the effect of interest
+    \item \underline{Need to \emph{mean center} baseline covariates}: $Y_{i1}^* = Y_{i1} - \bar{Y}_{\cdot0}$
+  \end{itemize}
+\end{itemize}
+\let\thefootnote\relax\footnotetext{Yang \& Tsiatis (2001). Efficiency Study of Estimators for a Treatment Effect in a Pretest-Posttest Trial. \emph{The Am. Statistician}, 55(4) 314-321}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{ANCOVA I for effect of treatment on ADAS13 at 18 months}
+<<ancovai, echo = FALSE, size = 'scriptsize'>>=
+summary(lm(ADAS13.m18 ~ active + ADAS13.m0, data = trial_wide))
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{ANCOVA II for effect of treatment on ADAS13 at 18 months}
+<<echo = FALSE, size = 'scriptsize'>>=
+center <- function(x) scale(x, scale = FALSE)
+@
+<<ancovaii, echo = FALSE, size = 'scriptsize'>>=
+summary(lm(ADAS13.m18 ~ active*center(ADAS13.m0), data = trial_wide))
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{ANCOVA II with more covariates}
+<<ancovaii2cov, echo = FALSE, size = 'scriptsize'>>=
+summary(lm(ADAS13.m18 ~ active*center(ADAS13.m0) + female + age, data = trial_wide))
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{ANCOVA summary}
+\begin{itemize}
+  \item Ubiquitous, simple, powerful framework
+  \item Inherently a \textbf{complete case} analysis!
+  \item With missing data, not intention-to-treat (ITT) analysis
+  \item Does not make use of \textbf{incomplete cases!}
+  \item Might be biased and/or inefficient (low power) with missing data
+\end{itemize}
+\end{frame}
+
+\section[Two-stage models]{Two-stage models}
+
+\begin{frame}[fragile]
+\frametitle{Two-stage models}
+\begin{itemize}
+  \item \emph{Subject-specific} longitudinal profiles can often be modeled with simple linear regression
+  \item This leads to the 2-stage model:
+  \begin{itemize}
+    \item \underline{Stage 1}: Linear regression model for each subject separately
+    \item \underline{Stage 2}: Model subject-specific regression coefficients with covariates of interest
+  \end{itemize}
+  \item However, this is \textbf{NOT} a recommend analysis approach, but rather a means to introduce mixed-effect models.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Two-stage model example}
+\begin{itemize}
+  \item \underline{Stage 1}:
+    \begin{equation}
+      Y_{ij} = \beta_{0i} + t_{ij}\beta_{1i} + \varepsilon_i
+    \end{equation}
+  for subject $i$ at time $t_{ij}$
+  \item Provides estimates of subject-specific intercepts, $\hat\beta_{0i}$ and slopes $\hat\beta_{0i}$
+  \item $\varepsilon_i \sim N(0,\sigma^2_iI_{n_i})$ estimates \emph{within}-subject variability
+  \item \emph{Between}-subject variability can now be modeled by treating $\hat\beta_i$ as ``response variables''
+  \item \underline{Stage 2}:
+  \begin{equation}
+    \hat\beta_{1i} = X_i\beta + \varepsilon'_i
+  \end{equation}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Stage 1 models of simulated trial}
+<<trial_stage1_plot, echo = FALSE>>=
+ggplot(subset(trial, id %in% 1:4),
+  aes(x=month, y=ADAS13, group = id, color = group)) +
+  stat_smooth(method = 'lm') + geom_line() + geom_point() +
+  facet_wrap(~id)
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Stage 1 model of simulated trial}
+<<trial_fit_stage1, eval = TRUE, echo = FALSE, size = 'scriptsize'>>=
+trial_stage1 <- as.data.frame(do.call(rbind, lapply(unique(trial$id),
+  function(i){
+    fit <- lm(ADAS13 ~ month,
+      data = trial_obs, subset = id == i)
+    c(id = i, beta = fit$coef, sigma = summary(fit)$sigma)
+})))
+trial_stage1 <- right_join(trial_stage1,
+  filter(trial, month == 0) %>% 
+    select(id, active, group, age, female))
+head(trial_stage1)
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Stage 1 model of simulated trial}
+<<size = 'scriptsize'>>=
+summary(lm(ADAS13 ~ month, data = trial_obs, subset = id == 1))
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Stage 2 model of simulated trial}
+<<trial_plot_stage2>>=
+ggplot(trial_stage1,
+  aes(x=group, y=beta.month, group = group, color = group)) +
+  geom_boxplot(alpha = 0.25) + 
+  ylab('ADAS13 change per month')
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Stage 2 model of simulated trial}
+{\footnotesize
+<<trial_stage2_fit>>=
+summary(lm(beta.month ~ female + age + active, data = trial_stage1))
+@
+}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Two-stage models}
+\begin{itemize}
+  \item In contrast to ANCOVA and $t$-test, two-stage models allow all randomized subject with at least one followup to be included into analysis (``modified intention-to-treat'')
+  \item However, second stage models ignore the variability/uncertainty of the slope estimates from the first stage
+  \item This means that $p$-values from second stage might be smaller than they should be and Type I error could be inflated
+\end{itemize}
+\end{frame}
+
+\section[Mixed models]{Mixed Models}
+
+\begin{frame}[fragile]
+\frametitle{Linear mixed-effects models}
+Linear mixed-effects models provide a cleaner, more efficient, and more accurate one-step alternative to two-stage models
+\begin{displaymath}
+\left. \begin{array}{ll}
+\textrm{Stage 1: } Y_{ij} &= \beta_{0i} + t_{ij}\beta_{1i} + \varepsilon_i\\
+\textrm{Stage 2: } \hat\beta_{1i} &= X_i\beta + \varepsilon'_i
+  \end{array} \right\} \rightarrow
+  Y_{ij} = X_i\beta + b_{0i} + t_{ij}b_{1i} + \varepsilon_i
+\end{displaymath}
+
+\begin{align*}
+& \beta                            & \textrm{\mathbf{population level ``fixed effects''}}\\
+& b_i \sim N(0,D)                  & \textrm{\mathbf{subject-specific ``random effects'' for sujbect} i}\\
+& \varepsilon_i \sim N(0,\Sigma_i) & \textrm{\mathbf{vector of ``residuals'' for subject } i}\\
+& D,\, \Sigma_i                    & \textrm{\mathbf{``variance components''}}\\
+\end{align*}
+
+$b_1,\ldots,b_N,\varepsilon_1,\ldots,\varepsilon_N$ are assumed independent
+\end{frame}
+
+% % \begin{frame}[fragile]
+% % \frametitle{``Shrinkage'': LME vs ``Stage 1''}
+% % <<shrinkage, echo = TRUE, size = 'tiny'>>=
+% % fit_lme <- lme(Hippocampus ~ Year, data = trial_wide, random = ~Year|ID)
+% % trial_ranefs <- ranef(fit_lme)
+% % colnames(trial_ranefs) <- c('random.int', 'random.slope')
+% % trial_ranefs$ID <- rownames(trial_ranefs)
+% % trial_ranefs <- merge(trial_ranefs, trial_stage1, by = 'ID')
+% % with(trial_ranefs,
+% %   plot(random.slope + fixef(fit_lme)['Year'], beta.Year,
+% %   pch='.', xlim=c(-200,0), ylim=c(-200,0)))
+% % abline(a=0,b=1)
+% % @
+% % \end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Linear mixed-effects models of simulated trial}
+<<trial_lme, size = 'tiny'>>=
+fit_lme <- lme(ADAS13 ~ month + month:active, data = trial_obs, random = ~month|id)
+summary(fit_lme)
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{LME model with additional covariates}
+<<trial_lme_age, size = 'tiny'>>=
+fit_lme_cov <- lme(ADAS13 ~ age + female + month + month:active, data = trial_obs, random = ~month|id)
+summary(fit_lme_cov)
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Linear mixed-effects models (R code)}
+<<trial_lme_rcode, eval = FALSE, echo = TRUE>>=
+lme(ADAS13 ~ month + month:active, data = trial_obs, 
+  random = ~month|id)
+
+lme(ADAS13 ~ age + female + month + month:active, data = trial_obs, 
+  random = ~month|id)
+@
+\end{frame}
+
+<<trial_lme_profiles, echo = FALSE, size = 'scriptsize'>>=
+trial_obs <- mutate(trial_obs, month.active = month*active)
+fit_lme_cov_plot <- lme(ADAS13 ~ age + female + month + month.active, data = trial_obs, random = ~month|id)
+
+# get profile for each apoe group
+act_profile <- contrast(fit_lme_cov_plot,
+  a = list(age = mean(trial_wide$age),
+           female = 1,
+           month = seq(0,18,6),
+           month.active = seq(0,18,6)
+))
+pbo_profile <- contrast(fit_lme_cov_plot,
+  a = list(age = mean(trial_wide$age),
+           female = 1,
+           month = seq(0,18,6),
+           month.active = 0
+))
+# combine the profiles into one data.frame
+pd <- rbind(
+  filter(with(act_profile,
+    data.frame(active=1, month.active, month, age, Estimate = Contrast, Lower, Upper)),
+  month.active == month),
+  with(pbo_profile,
+    data.frame(active=0, month.active, month, age, Estimate = Contrast, Lower, Upper))
+)
+
+pd$group <- factor(pd$active, 0:1, c('placebo', 'active'))
+@
+
+\begin{frame}[fragile]
+\frametitle{Mean profiles}
+<<echo = FALSE, size = 'scriptsize'>>=
+print(pd, row.names=FALSE)
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Plotting profiles (shaded CIs)}
+<<echo = FALSE, size = 'scriptsize'>>=
+ggplot(pd, aes(x = month, y = Estimate, group = group))+
+  geom_line(aes(color=group)) +
+  geom_ribbon(aes(ymin = Lower, ymax = Upper, fill=group), alpha=0.25) +
+  ylim(c(25,45))
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Plotting profiles (error bar CIs)}
+<<echo = FALSE, size = 'scriptsize'>>=
+ggplot(pd, aes(x = month, y = Estimate, group = group, color=group))+
+  geom_line() +
+  geom_errorbar(aes(ymin = Lower, ymax = Upper), width=0, position=position_dodge(0.2)) +
+  ylim(c(25,45))
+@
+\end{frame}
+
+
+<<varPar, echo=FALSE>>=
+# simulate data with different variance parameters
+varPar <- expand.grid(
+  sigma_random_intercept = c(2, 10),
+  sigma_random_slope = c(0.45, 0.75),
+  sigma_residual = c(2, 8)
+)
+
+set.seed(20170701)
+
+varPlot <- do.call(rbind, lapply(1:nrow(varPar), function(i){
+  subjects <- data.frame(
+    id = 1:(2*n),
+    active = sample(c(rep(0,n), rep(1,n)), 2*n),
+    female = sample(0:1, 2*n, replace=TRUE),
+    age = rnorm(2*n, 75, 7.8),
+    censor = rexp(2*n,rate=attrition_rate),
+    sigma_random_intercept = varPar[i, 'sigma_random_intercept'],
+    sigma_random_slope = varPar[i, 'sigma_random_slope'],
+    sigma_residual = varPar[i, 'sigma_residual'],
+    ran.intercept = rnorm(2*n, sd=varPar[i, 'sigma_random_intercept']),
+    ran.slope     = rnorm(2*n, sd=varPar[i, 'sigma_random_slope']))
+
+  trial <- right_join(subjects, 
+    expand.grid(id = 1:(2*n), month=months)) %>%
+    mutate(
+      residual = rnorm(2*n*length(months), sd=varPar[i, 'sigma_residual']),
+      group = factor(active, 0:1, c('placebo', 'active')),
+      missing = ifelse(month>censor, 1, 0)) %>%
+    arrange(id, month) %>%
+    filter(!missing)
+  trial$ADAS13 <- round(
+    model.matrix(~ female+age+month+month:active, data = trial)[, names(Beta)] %*% 
+    Beta +
+    with(trial, ran.intercept + ran.slope*month + residual), 
+    digits = 0
+  )[,1]
+  trial
+}))
+@
+
+\begin{frame}[fragile]
+\frametitle{Mixed effect models: standard deviation of residuals}
+<<>>=
+ggplot(filter(varPlot, sigma_random_intercept==2 & sigma_random_slope==0.45), 
+  aes(x=month, y=ADAS13, group=id, color=group)) + 
+  geom_line(alpha=0.25) +
+  geom_smooth(aes(group = NULL), method = 'lm', size = 2) +
+  facet_wrap(~sigma_residual) +
+  ylim(0,70)
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Mixed effect models: standard deviation of random intercepts}
+<<>>=
+ggplot(filter(varPlot, sigma_residual==2 & sigma_random_slope==0.45), 
+  aes(x=month, y=ADAS13, group=id, color=group)) + 
+  geom_line(alpha=0.25) +
+  geom_smooth(aes(group = NULL), method = 'lm', size = 2) +
+  facet_wrap(~sigma_random_intercept) +
+  ylim(0,70)
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Mixed effect models: standard deviation of random slopes}
+<<>>=
+ggplot(filter(varPlot, sigma_residual==2 & sigma_random_intercept==2), 
+  aes(x=month, y=ADAS13, group=id, color=group)) + 
+  geom_line(alpha=0.25) +
+  geom_smooth(aes(group = NULL), method = 'lm', size = 2) +
+  facet_wrap(~sigma_random_slope) +
+  ylim(0,70)
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Random intercepts model}
+If we drop the \textcolor{BrickRed}{\emph{random slope}} term, what remains is called a \emph{random intercepts} model
+\begin{align*}
+  Y_{ij} = X_i\beta + b_{0i} + \textcolor{BrickRed}{t_{ij}b_{1i}} + \varepsilon_i
+\end{align*}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Random intercepts model}
+<<trial_lme_apoe_int, size = 'tiny'>>=
+fit_lme_int <- update(fit_lme, random = ~1|id)
+summary(fit_lme_int)
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Random intercepts model vs model with random slopes}
+<<trial_lme_apoe_int_vs_slope, size = 'footnotesize', echo = TRUE>>=
+anova(fit_lme_int, fit_lme)
+@
+The model with random slopes is preferred
+\end{frame}
+
+% \begin{frame}[fragile]
+% \frametitle{``Mixed Model of Repeated Measures'' (MMRM)}
+% \begin{itemize}
+%   \item A popular \underline{marginal model}, ``Mixed Model of Repeated Measures'' (MMRM), makes no (or very general) assumptions about the mean and variance/covariance structure.
+%   \item \underline{Unstructured mean}: time is treated as categorical, so no linear (or quadratic, etc.) trend is assumed
+%   \item \underline{Unstructured variance/covariance}: includes parameters for variance at each visit (``heterogeneous'') and visit-to-visit correlation
+%   \item A repeated measures extension of ANCOVA (instead of one post-baseline assessment, there are several)
+%   \item An example of a marginal model that cannot be specified as a hierarchical model
+% \end{itemize}
+% \end{frame}
+%
+% \begin{frame}[fragile]
+% \frametitle{``Mixed Model of Repeated Measures'' (MMRM)}
+% <<echo = TRUE>>=
+% trial_wide_123 <- subset(trial_wide,
+%   Year %in% c(1, 2, 3)
+% )
+% trial_wide_123$Y <- as.factor(trial_wide_123$Year)
+% trial_wide_123$Hippocampus.bl.c <- center(trial_wide_123$Hippocampus.bl)
+% trial_wide_123$AGE.c <- center(trial_wide_123$AGE)
+% mmrm_fit_apoe_age <- gls(
+%   Hippocampus ~ Y*APOE + Hippocampus.bl.c + AGE.c,
+%   data = trial_wide_123,
+%   correlation = corSymm(form = ~ 1 | ID),
+%   weights=varIdent(form=~1|Year)
+% )
+% @
+% \end{frame}
+%
+% \begin{frame}[fragile]
+% \frametitle{MMRM Summary}
+% <<size = 'tiny'>>=
+% summary(mmrm_fit_apoe_age)
+% @
+% \end{frame}
+%
+% \begin{frame}[fragile]
+% \frametitle{MMRM \apoe$\,$ group contrast at each visit}
+% <<>>=
+% contrast(mmrm_fit_apoe_age,
+%   a = list(Y=factor(c(1,2,3)), APOE = 'e4+', Hippocampus.bl.c = 0, AGE.c = 0),
+%   b = list(Y=factor(c(1,2,3)), APOE = 'e4-', Hippocampus.bl.c = 0, AGE.c = 0)
+% )
+% @
+% \end{frame}
+%
+% \begin{frame}[fragile]
+% \frametitle{Plotting MMRM profiles}
+% <<trial_mmrm_profiles, echo = TRUE>>=
+% # get profile for each apoe group
+% apoe_n_mmrm_profile <- contrast(mmrm_fit_apoe_age,
+%   a = list(APOE = 'e4-', Y=factor(c(1,2,3)),
+%            Hippocampus.bl.c = 0, AGE.c = 0
+% ))
+% apoe_p_mmrm_profile <- contrast(mmrm_fit_apoe_age,
+%   a = list(APOE = 'e4+', Y=factor(c(1,2,3)),
+%            Hippocampus.bl.c = 0, AGE.c = 0
+% ))
+% # combine the profiles into one data.frame
+% pd_mmrm <- rbind(
+%   with(apoe_n_mmrm_profile,
+%     data.frame(APOE, Y, Estimate = Contrast, Lower, Upper)),
+%   with(apoe_p_mmrm_profile,
+%     data.frame(APOE, Y, Estimate = Contrast, Lower, Upper))
+% )
+% @
+% \end{frame}
+%
+% \begin{frame}[fragile]
+% \frametitle{Plotting MMRM profiles (shaded CIs)}
+% <<echo = TRUE, size = 'scriptsize'>>=
+% ggplot(pd_mmrm, aes(x = Y, y = Estimate, group = APOE, color = APOE))+
+%   geom_smooth(aes(ymin = Lower, ymax = Upper), stat = 'identity')
+% @
+% \end{frame}
+%
+% \begin{frame}[fragile]
+% \frametitle{Plotting profiles (error bar CIs)}
+% <<echo = TRUE, size = 'scriptsize'>>=
+% ggplot(pd_mmrm, aes(x = Y, y = Estimate, group = APOE, color = APOE))+
+%   geom_errorbar(aes(ymin = Lower, ymax = Upper),
+%     position = position_dodge(.1)) +
+%   geom_line(position = position_dodge(.1))
+% @
+% \end{frame}
+%
+% \begin{frame}[fragile]
+% \frametitle{Multiple imputation (MI)}
+% Basic steps:
+% \begin{enumerate}
+%   \item Create multiple complete versions of the data with imputed plausible values
+%   \item Analyze each complete version with standard methods (e.g. ANCOVA)
+%   \item Combine the results
+% \end{enumerate}
+% Comments:
+% \begin{itemize}
+%   \item MI requires many more modeling decisions than direct likelihood methods (e.g. number of imputations, imputation methods, \ldots)
+%   \item Usually reserved for \emph{sensitivity analyses}
+% \end{itemize}
+% \end{frame}
+%
+% \begin{frame}[fragile]
+% \frametitle{1. Create multiple complete versions}
+% <<results = 'hide', echo = TRUE>>=
+% # make wide version of data
+% trial_wide_123_wide <- reshape(
+%   trial_wide_123[, c('ID', 'Year', 'AGE.c', 'ICV.bl',
+%   'Hippocampus.bl.c', 'APOE', 'Hippocampus', 'MMSE')],
+%   idvar = 'ID', timevar = 'Year',
+%   v.names = c('Hippocampus', 'MMSE'), direction = 'wide'
+% )
+% imp <- mice(trial_wide_123_wide[, c('ID', 'AGE.c', 'ICV.bl',
+%   'Hippocampus.bl.c', 'APOE',
+%   'Hippocampus.1', 'Hippocampus.2', 'Hippocampus.3')],
+%   seed = 20140402)
+% @
+% <<echo = TRUE, size = 'tiny'>>=
+% # first complete version
+% head(complete(imp))
+% @
+% \end{frame}
+%
+% \begin{frame}[fragile]
+% \frametitle{2. Analyze each complete version}
+% <<echo = TRUE, size = 'tiny'>>=
+% fits_mi <- with(data=imp, lm(ADAS13.18.3~APOE*Hippocampus.bl.c))
+% summary(fits_mi)
+% @
+% \end{frame}
+%
+% \begin{frame}[fragile]
+% \frametitle{3. Combine the results}
+% <<echo = TRUE, size = 'tiny'>>=
+% summary(pool(fits_mi))[,1:7]
+% @
+% \end{frame}
+%
+% \begin{frame}[fragile]
+% \frametitle{Missing Data: Notation}
+% \begin{itemize}
+%   \item Measurement: $Y_{ij}$
+%   \item Missingness indicator:
+%     \begin{displaymath}
+%      R_{ij} = \left\{
+%      \begin{array}{l}
+%        1 \textrm{ if }Y_{ij}\textrm{ is observed}\\
+%        0 \textrm{ otherwise}
+%       \end{array} \right.
+%     \end{displaymath}
+%   \item Let $\mathbf{Y}_i = (Y_{i1},\ldots,Y_{in_i})' = (\mathbf{Y}_i^o, \mathbf{Y}_i^m)$, where
+%      \begin{displaymath}
+%      \left\{
+%      \begin{array}{l}
+%        \mathbf{Y}_i^o \textrm{ observed }Y_{ij}\\
+%        \mathbf{Y}_i^m \textrm{ un-observed }Y_{ij}\\
+%       \end{array} \right.
+%     \end{displaymath}
+%   \item $D_i$ is time of dropout
+%   \item $\theta$ parameters that control $\mathbf{Y}_i$ (e.g. effects for treatment, gender, age, \ldots)
+%   \item $\psi$ parameters that control $\mathbf{R}_i$ (e.g. treatment effect, $\mathbf{Y}_i^m$, \dots)
+% \end{itemize}
+% \let\thefootnote\relax\footnotetext{The notation is supposed to be a helpful shorthand. If it's not helpful, don't worry about it!}
+% \end{frame}
+%
+% \begin{frame}[fragile]
+% \frametitle{Missing data frameworks}
+% \begin{tabular}{ll}
+% Full joint likelihood & $f(\mathbf{Y}_i, \mathbf{R}_i|X_i, \theta, \psi)$\\
+% \underline{Missing \textbf{Completely} at Random} & $f(\mathbf{R}_i|X_i, \psi)$\\
+% \underline{Missing at Random} & $f(\mathbf{R}_i|X_i, \mathbf{Y}_i^o, \psi)$\\
+% \underline{Missing \textbf{Not} at Random} & $f(\mathbf{R}_i|X_i, \mathbf{Y}_i^o, \mathbf{Y}_i^m, \psi)$\\
+% \end{tabular}
+%
+% \bigskip
+% We'll unpack these a bit \ldots
+% \end{frame}
+%
+% \begin{frame}[fragile]
+% \frametitle{Missing \underline{Completely} at Random (MCAR)}
+% $f(\mathbf{R}_i|X_i, \psi)$: Missingness (may) depend only on observed covariates ($X_i$)\\
+%
+% Appropriate methods:
+% \begin{itemize}
+%   \item Complete Case (e.g. ANCOVA) (?)
+%   \item Last Observation Carried Forward (LOCF) (?)
+%   \item Single imputation (?)
+% \end{itemize}
+% \end{frame}
+%
+% \begin{frame}[fragile]
+% \frametitle{Missing at Random (MAR)}
+% $f(\mathbf{R}_i|X_i, \mathbf{Y}_i^o, \psi)$: Missingness (may) depend on observed covariates ($X_i$) and/or observed outcomes ($\mathbf{Y}_i^o$)\\
+%
+% Appropriate methods:
+% \begin{itemize}
+%   \item \textbf{Direct likelihood (e.g. mixed-effects models)!},
+%   \item Multiple imputation
+%   \item Weighted generalized estimating equations (WGEE)
+% \end{itemize}
+% \end{frame}
+%
+% \begin{frame}[fragile]
+% \frametitle{Missing \underline{Not} at Random (MNAR)}
+% $f(\mathbf{R}_i|X_i, \mathbf{Y}_i^o, \mathbf{Y}_i^m, \psi)$: Missingness (may) depend on observed covariates ($X_i$), observed outcomes ($\mathbf{Y}_i^o$), and unobserved outcomes ($\mathbf{Y}_i^m$)\\
+%
+% Appropriate sensitivity analyses (?):
+% \begin{itemize}
+%   \item Selection models: $f(\mathbf{Y}_i|X_i, \theta)f(\mathbf{R}_i|X_i, \mathbf{Y}_i^o, \mathbf{Y}_i^m, \psi)$\\
+%   \item pattern-mixture models: $f(\mathbf{Y}_i|X_i, \mathbf{R}_i, \theta)f(\mathbf{R}_i|X_i, \psi)$\\
+%   \item shared-parameter models: $f(\mathbf{Y}_i|X_i, \mathbf{b}_i, \theta)f(\mathbf{R}_i|X_i, \mathbf{b}_i, \psi)$\\
+% \end{itemize}
+%
+% (?) We can never completely rule out MNAR, since, if it exists, it depends on variables that we do \underline{not} observe.
+% \end{frame}
+%
+% \begin{frame}[fragile]
+% \frametitle{Missing data: bottom line}
+% \begin{itemize}
+%   \item \underline{Missing Not at Random} is impossible to rule out. The best we can do is \emph{sensitivity analyses} or apply models that make strong untestable assumptions about missingness mechanism.
+%   \item \underline{Missing Completely At Random} is an unrealistic and unnecessary assumption.
+%   \item \underline{Missing at Random} is a more reasonable assumption, and we have reliable methods that are robust in this case.
+% \end{itemize}
+% Therefore it recommended to use direct likelihood (mixed-effects), multiple imputation, or WGEE; and \underline{avoid} complete case (ANCOVA), LOCF, or single imputation.
+% \end{frame}
+
+\end{document}
