@@ -98,7 +98,7 @@ University of Southern California}
   \begin{minipage}[h]{6in}
      \vspace*{3.25in}\\
      \hspace*{0.25in}\includegraphics[height=0.5in]{manual_figure/watermark.pdf}\\
-     \vspace*{-0.3in}\\
+     \vspace*{-0.31in}\\
      \hspace*{0.25in}\textcolor{light-gray}{{\tiny USC ATRI}}
   \end{minipage}
 }
