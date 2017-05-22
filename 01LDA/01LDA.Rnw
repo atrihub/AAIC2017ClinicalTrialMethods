@@ -97,7 +97,7 @@ University of Southern California}
 \setbeamertemplate{background}{
   \begin{minipage}[h]{6in}
      \vspace*{3.25in}\\
-     \hspace*{0.25in}\includegraphics[height=0.5in]{manual_figure/watermark.pdf}\\
+     \hspace*{0.25in}\includegraphics[height=0.5in]{../watermark.pdf}\\
      \vspace*{-0.31in}\\
      \hspace*{0.25in}\textcolor{light-gray}{{\tiny USC ATRI}}
   \end{minipage}
@@ -292,7 +292,8 @@ latex(summary(group ~ female + age + ADAS11, data = trial_obs, subset = month ==
 ggplot(trial_obs, aes(x=month, y=ADAS11, group=id, color=group)) + 
   geom_line(alpha=0.25) +
   geom_smooth(aes(group = NULL), method = 'lm', size = 2) +
-  scale_x_continuous(breaks=months)
+  scale_x_continuous(breaks=months) +
+  theme(legend.position=c(0.1, 0.85))
 @
 }
 \end{frame}
@@ -650,10 +651,11 @@ Linear mixed-effects models provide a cleaner, more efficient, and more accurate
 \end{displaymath}
 
 \begin{itemize}
+  \item $X_i$: covariates for subject $i=1,\ldots,400$\\
   \item $\beta$: population level ``\underline{fixed effects}''\\
-  \item $b_i \sim \N(0,D)$: subject-specific ``\underline{random effects}'' for subject $i$\\
-  \item $(\varepsilon_{i1},\ldots,\varepsilon_{i4}) \sim \N(0,\Sigma_i)$: vector of ``\underline{residuals}'' for subject $i$\\
-  \item $D,\, \Sigma_i$: ``\underline{variance components}''\\
+  \item $b_i \sim \N(0,D)$: subject-specific ``\underline{random effects}'' for subject $i=1,\ldots,400$\\
+  \item $(\varepsilon_{i1},\ldots,\varepsilon_{i4}) \sim \N(0,\Sigma)$: vector of ``\underline{residuals}'' for subject $i=1,\ldots,400$\\
+  \item $D,\, \Sigma$: ``\underline{variance components}''\\
 \end{itemize}
 
 $b_1,\ldots,b_N,\varepsilon_1,\ldots,\varepsilon_N$ are assumed independent

@@ -1,0 +1,916 @@
+<<packages, results = 'hide', echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE, results = 'hide'>>=
+knit_hooks$set(crop=hook_pdfcrop)
+opts_chunk$set(fig.path='figure/', echo = FALSE, message = FALSE, warning = FALSE,
+ fig.width=6, fig.height=6/1.8, fig.align = 'center', tidy = FALSE, comment = NA,
+ cache = FALSE, cache.path = 'cache/', out.width = '5.5in', crop = TRUE)
+
+options(digits = 3, stringsAsFactors = FALSE, width = 150)
+@
+
+<<eval = TRUE, echo = FALSE, message=FALSE, warning=FALSE>>=
+# required R packages
+library(Hmisc)
+library(tidyverse)
+library(ggplot2)
+library(nlme)
+library(contrast)
+library(grid)
+library(gridExtra)
+library(mvtnorm)
+library(mice)
+
+# ggplot theme and palette settings
+theme_set(theme_bw(base_size = 12))
+cbbPalette <- c('#0072B2', '#D55E00', '#CC79A7', '#000000', '#E69F00', '#56B4E9', '#009E73', '#F0E442')
+scale_colour_discrete <- function(...) scale_colour_manual(..., values=cbbPalette)
+scale_fill_discrete <- function(...) scale_fill_manual(..., values=cbbPalette)
+
+theme_table <- function(..., levs=2){
+  theme_minimal(...) + 
+    theme(
+      panel.grid = element_blank(), 
+      axis.text.x = element_blank(),
+      axis.text.y = element_text(face='bold', color=cbbPalette[1:levs]),
+      axis.title = element_blank())
+} 
+@
+
+\documentclass[aspectratio=1610]{beamer}\usepackage[]{graphicx}\usepackage[]{color}
+
+\usepackage{alltt}
+\usetheme{Frankfurt}
+\usecolortheme{dove}  
+\usefonttheme{professionalfonts}
+  
+% \usepackage[
+%   activate={true,nocompatibility},
+%   final,
+%   tracking=true,
+%   factor=1200,
+%   stretch=50,
+%   shrink=0
+%   ]{microtype}
+  
+\useinnertheme{circles}
+\usepackage{mathpazo}
+% \usepackage[T1]{fontenc}
+% \usepackage{librecaslon}
+% \usepackage[scaled=.95]{helvet}% uncomment these if required
+% \usepackage{courier}
+% \usepackage{overpic}
+% \usepackage{CJKutf8} % for japanese
+% \renewcommand{\sfdefault}{lmss}
+% \renewcommand{\ttdefault}{lmtt}
+\usepackage{url}
+\usepackage{tikz} 
+\usepackage{animate} 
+\usepackage{color}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{mathtools} % for floor/ceiling functions
+\usepackage{bm} % for floor/ceiling functions
+\RequirePackage[pdftex, pdfpagemode = none, 
+   pdftoolbar = true, pdffitwindow = true, 
+   pdfcenterwindow = true]{hyperref}\providecommand{\shadeRow}{\rowcolor[gray]{0.75}}
+
+\DeclareMathOperator{\Dist}{Dist}
+\DeclareMathOperator{\sd}{SD}
+\DeclareMathOperator{\se}{SE}
+\DeclareMathOperator{\var}{var}
+\DeclareMathOperator{\cov}{cov}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator{\Unif}{Unif}
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+\DeclarePairedDelimiter{\floor}{\lfloor}{\rfloor}
+
+\DeclareMathOperator{\age}{age}
+\DeclareMathOperator{\dAge}{dAge}
+\DeclareMathOperator{\apoe}{apoe}
+\DeclareMathOperator{\edu}{edu}
+\DeclareMathOperator{\sex}{sex}
+\DeclareMathOperator{\Active}{Active}
+\DeclareMathOperator{\adas}{ADAS}
+
+\newcommand{\APOE}{\emph{APOE}$\varepsilon$4 }
+\newcommand{\N}{\mathcal{N}}
+\newcommand{\foot}{\let\thefootnote\relax\footnotetext}
+
+\definecolor{BrickRed}{RGB}{150,22,11}
+\definecolor{DarkBlue}{RGB}{0,0,205}
+\definecolor{light-gray}{gray}{0.9}
+\definecolor{uscyellow}{HTML}{E9A000}
+\definecolor{uscred}{HTML}{990000}
+
+\makeatother
+
+\title{Contemporary Issues in Clinical Trials Methods\\
+Longitudinal Data Analysis Part II}
+\author{Michael Donohue}
+\institute{
+Alzheimer's Therapeutic Research Institute\\
+Department of Neurology\\
+University of Southern California}
+
+\date{July 14, 2017}
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+
+% remove navigation symbols
+\usenavigationsymbolstemplate{}
+\setbeamertemplate{footline}[frame number]
+
+\begin{document}
+
+\setbeamertemplate{background}{
+  \begin{minipage}[h]{6in}
+     \vspace*{3.25in}\\
+     \hspace*{0.25in}\includegraphics[height=0.5in]{../watermark.pdf}\\
+     \vspace*{-0.31in}\\
+     \hspace*{0.25in}\textcolor{light-gray}{{\tiny USC ATRI}}
+  \end{minipage}
+}
+
+\maketitle
+
+\setbeamertemplate{background}{}
+
+% 1. outline three main features
+% 2. simulate and fit MMRM
+% 3. fit ``cLDA'' compare estimates
+% 4. review conclusions of MMRM cLDA comparison(?)
+% 5. model selection strategies 
+%    most saturated/parameters possible
+%    AIC(?)
+% 6. Missing Data, MAR, MNAR
+% 7. Simulate MNAR
+% 8. MI
+% 9. Delta method
+% 10. Post-treatment discontinuation??
+% 11. Estimands??
+
+\section[Mean \& Variance Structure]{Mean \& Variance Structure}
+
+\begin{frame}[fragile]
+\frametitle{Key features of longitudinal models}
+\begin{itemize}
+  \item Last session we discussed a linear mixed effect model (LME) which treats time as a continuous variable
+  \item This is one type of longitudinal model among many types
+  \item Three key features of longitudinal models:
+  \begin{itemize}
+    \item \textbf{Mean structure}: Governs shape of mean trajectory
+    \item \textbf{Variance-covariance structure}: Governs within-subject correlation
+    \item \textbf{Baseline assessment}: Treated as covariate or outcome
+  \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Taxonomy of longitudinal models}
+\begin{tabular}{lccc}
+\hline
+\hline
+  & \textbf{MMRM} & \textbf{LDA} & \textbf{cLDA}\\
+\hline
+\rowcolor[gray]{.9} \textbf{Mean structure}
+  & cat. time    & cat. or cts. time & cat. or cts. time\\
+\textbf{Variance-covariance} 
+  & correlated residuals & correlated residuals & correlated residuals\\
+  &                      & or random effects    &  or random effects\\
+\rowcolor[gray]{.9}\textbf{Baseline assessment}
+  & as covariate         & as outcome;         & as outcome;\\
+\rowcolor[gray]{.9}
+  &                      & different means     &  common mean\\
+\rowcolor[gray]{.9}
+  &                      & per group           &  per group\\
+\hline
+\end{tabular}
+Abbreviations: MMRM, Mixed Model of Repeated Measures; LDA, Longitudinal Data Analysis; cLDA, Constrained LDA;
+cat., categorical; cts., continuous.
+% \foot{Lu, K. (2010). On efficiency of constrained longitudinal data analysis versus longitudinal analysis of covariance. \emph{Biometrics}, 66(3), 891-896.}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Linear mixed-effects model (LME)}
+\begin{displaymath}
+  \adas_{ij} = X_i\beta + b_{0i} + t_{ij}b_{1i} + \varepsilon_{ij}
+\end{displaymath}
+
+\begin{itemize}
+  \item $X_i$: covariates for subject $i=1,\ldots,400$\\
+  \item $\beta$: population level ``\underline{fixed effects}''\\
+  \item $b_i \sim \N(0,D)$: subject-specific ``\underline{random effects}'' for subject $i=1,\ldots,400$\\
+  \item $(\varepsilon_{i1},\ldots,\varepsilon_{i4}) \sim \N(0,\Sigma)$: vector of ``\underline{residuals}'' for subject $i=1,\ldots,400$\\
+  \item $D,\, \Sigma$: ``\underline{variance components}''\\
+\end{itemize}
+
+$b_1,\ldots,b_N,\varepsilon_1,\ldots,\varepsilon_N$ are assumed independent
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Linear mixed-effects model (LME)}
+\begin{displaymath}
+  \adas_{ij} = X_i\beta + b_{0i} + t_{ij}b_{1i} + \varepsilon_{ij}
+\end{displaymath}
+
+\begin{itemize}
+  \item ``\underline{Mean structure}'' (fixed effects): $X_i\beta$
+    \begin{itemize}
+      \item linear, quadratic, or categorical time; and
+      \item other fixed-effect covariates (age, education, gender, treatment)
+    \end{itemize}
+  \item ``\underline{Variance structure}'' (random effects \& residuals): $b_{0i} + t_{ij}b_{1i} + \varepsilon_{ij}$\\
+    \begin{itemize}
+      \item random intercept, random intercept \& slope; or
+      \item impose variance-covariance (variance and correlation) structure on residuals $(\varepsilon_{i1},\ldots,\varepsilon_{i4}) \sim \N(0,\Sigma)$
+    \end{itemize}
+\end{itemize}
+
+\end{frame}
+
+\section[MMRM]{MMRM}
+
+\begin{frame}[fragile]
+\frametitle{``Mixed Model of Repeated Measures'' (MMRM)}
+\begin{itemize}
+  \item A popular \underline{marginal model}, ``Mixed Model of Repeated Measures'' (MMRM), makes no (or very general) assumptions about the mean and variance/covariance structure.
+  \item \underline{Unstructured mean}: time is treated as categorical, so no linear (or quadratic, etc.) trend is assumed
+  \item \underline{Unstructured variance/covariance}: includes parameters for variance at each visit (``heterogeneous'') and visit-to-visit correlation
+  \item A repeated measures extension of ANCOVA (instead of one post-baseline assessment, there are several)
+  \item MMRM is not actually a mixed-effects model (no random effects)!
+  \item Usually treats change from baseline as outcome variable, and baseline as covariate (like ANCOVA).
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Mean structure examples}
+<<>>=
+# fixed effects parameters estimated from ADNI
+Beta <- c(
+   '(Intercept)'=19.60, # mean ADAS at baseline
+        'female'=-0.78, # better scores for females
+           'age'= 0.01, # worse per year of age at baseline
+         'month'= 0.40, # worse per month post baseline
+  'month:active'=-0.05) # improvement per month with treatment
+
+# standard deviations for random effects
+sigma_random_intercept <- 6.0
+sigma_random_slope <- 0.42
+sigma_residual <- 3.1
+
+# other design parameters
+months <- c(0, 6, 12, 18)
+n <- 200 # per group
+attrition_rate <- 0.40/18 # approx per month
+
+# set seed so that simulation is reproducible
+set.seed(20170701)
+
+# simulate subject specific data
+subjects <- data.frame(
+  id = 1:(2*n),
+  active = sample(c(rep(0,n), rep(1,n)), 2*n),
+  female = sample(0:1, 2*n, replace=TRUE),
+  age = rnorm(2*n, 75, 7.8),
+  censor = rexp(2*n,rate=attrition_rate),
+  ran.intercept = rnorm(2*n, sd=sigma_random_intercept),
+  ran.slope     = rnorm(2*n, sd=sigma_random_slope))
+
+# simulate data over time
+trial <- right_join(subjects, 
+  expand.grid(id = 1:(2*n), month=months)) %>%
+  mutate(
+    residual = rnorm(2*n*length(months), sd=sigma_residual),
+    group = factor(active, 0:1, c('placebo', 'active')),
+    missing = ifelse(month>censor, 1, 0)) %>%
+  arrange(id, month)
+
+# calculate the ADAS scores with random effects and residuals and 
+# round to nearest digit in 0-70
+trial <- mutate(trial,
+  ADAS11 = (model.matrix(~ female+age+month+month:active, trial)[, names(Beta)] %*% Beta)[,1],
+  ADAS11 = round(ADAS11 + ran.intercept + ran.slope*month + residual, digits = 0),
+  ADAS11 = replace(ADAS11, ADAS11<0, 0),
+  ADAS11 = replace(ADAS11, ADAS11>70, 70))
+
+# filter out the missing observations
+trial_mmrm <- filter(trial, !missing)
+
+# transfrom data from long to wide
+trial_wide <- trial_mmrm %>%
+  select(id, month, female, age, active, group, ADAS11) %>% 
+  mutate(month = paste0('ADAS11.m', month)) %>%
+  spread(month, ADAS11)
+
+# data for MMRM
+trial_mmrm <- right_join(
+  select(trial_wide, id, ADAS11.m0), 
+  filter(trial_mmrm, month>0)) %>%
+  mutate(ADAS11.ch = ADAS11 - ADAS11.m0)
+@
+
+<<>>=
+means <- expand.grid(female=1, age=70, month=0:18, active=0, id=1:3) %>%
+  filter(id %in% c(1,2) | month %in% months) 
+means <- mutate(means,
+    ADAS11 = (model.matrix(~ female+age+month+month:active, means)[, names(Beta)] %*% Beta)[,1],
+    ADAS11 = replace(ADAS11, ADAS11<0, 0),
+    ADAS11 = replace(ADAS11, ADAS11>70, 70),
+    ADAS11 = replace(ADAS11, id == 2, ADAS11 + month*month*0.1),
+    ADAS11 = replace(ADAS11, id == 3 & month == 0, ADAS11 + 0),
+    ADAS11 = replace(ADAS11, id == 3 & month == 6, ADAS11 + 10),
+    ADAS11 = replace(ADAS11, id == 3 & month == 12, ADAS11 + 2),
+    ADAS11 = replace(ADAS11, id == 3 & month == 18, ADAS11 + 25)) %>%
+  filter(id %in% 1:3) %>%
+  mutate(Mean = factor(id, labels=c('linear', 'quadratic', 'categorical')))
+
+ggplot(means, aes(x=month, y=ADAS11, group=Mean, color=Mean)) + 
+  geom_line() +
+  scale_x_continuous(breaks=months) +
+  theme(legend.position=c(0.15,0.8))
+@
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Variance-covariance structure}
+\begin{displaymath}
+  \adas_{ij} = X_i\beta + b_{0i} + t_{ij}b_{1i} + \varepsilon_{ij}
+\end{displaymath}
+
+\begin{itemize}
+  \item \emph{Vanilla} LME assumes \emph{homoscedastic} (homogenous/constant variance), independent residuals
+  \item MMRM drops the $b$ terms and can assume \emph{heteroscedastic} (heterogeneous variance), correlated residuals
+  \begin{itemize}
+    \item $(\varepsilon_{i1},\ldots,\varepsilon_{i4}) \sim \N(0,\Sigma)$
+    \item $\Sigma = \sigma^2VCV$, where
+    \item $\sigma^2$ is variance scale parameter
+    \item $V$ is diagonal matrix of standard deviation weights
+    \item $C$ is correlation matrix
+  \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Variance-covariance structure}
+\[
+(\varepsilon_{i1},\ldots,\varepsilon_{i4}) \sim \N(0,\Sigma),\quad \Sigma = \sigma^2VCV
+\]
+
+Examples:
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{verbatim}
+                        Heterogeneous variance
+                                0  6 12 18
+                             0  1  0  0  0
+                        V =  6  0  2  0  0
+                            12  0  0  7  0
+                            18  0  0  0 10
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{verbatim}
+ Exchangeable/Compound Symmetric              Unstructured/Symmetric
+             0    6   12   18                       0    6   12   18
+        0  1.0  0.2  0.2  0.2                  0  1.0  0.3  0.2  0.1
+    C = 6  0.2  1.0  0.2  0.2             C =  6  0.3  1.0  0.3  0.2
+       12  0.2  0.2  1.0  0.2                 12  0.2  0.3  1.0  0.2
+       18  0.2  0.2  1.0  0.2                 12  0.1  0.2  0.4  0.2
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+\end{frame}
+
+<<varPar, echo=FALSE>>=
+# simulate data with different variance parameters
+varPar <- expand.grid(
+  variance = c('homogeneous', 'heterogeneous'),
+  correlation = c('uncorrelated', 'correlated')
+)
+
+SD <- list(homogeneous = sqrt(rep(4, 4)), heterogeneous = (1:4)*2)
+Cor <- list(uncorrelated = 0, correlated = 0.8)
+
+varPlot <- do.call(rbind, lapply(1:nrow(varPar), function(i){
+  set.seed(20170714)
+  subjects <- data.frame(
+    id = 1:(2*n),
+    active = sample(c(rep(0,n), rep(1,n)), 2*n),
+    female = sample(0:1, 2*n, replace=TRUE),
+    age = rnorm(2*n, 75, 7.8),
+    censor = rexp(2*n,rate=attrition_rate))
+    
+  vv <- diag(SD[[varPar[i,'variance']]])
+  cc <- matrix(Cor[[varPar[i,'correlation']]], nrow=4, ncol=4)
+  diag(cc) <- 1
+  resids <- as.numeric(t(rmvnorm(nrow(subjects), mean=rep(0,4), sigma=vv%*%cc%*%vv)))
+
+  trial <- right_join(subjects, 
+    expand.grid(id = 1:(2*n), month=months)) %>%
+    arrange(id, month) %>%
+    mutate(residual = resids,
+      group = factor(active, 0:1, c('placebo', 'active')),
+      missing = ifelse(month>censor, 1, 0),
+      variance = varPar[i,'variance'],
+      correlation = varPar[i,'correlation']) %>%
+    arrange(id, month) %>%
+    filter(!missing)
+  trial$ADAS11 <- round(
+    model.matrix(~ female+age+month+month:active, data = trial)[, names(Beta)] %*% 
+    Beta + trial$residual, 
+    digits = 0
+  )[,1]
+  trial
+}))
+@
+
+\begin{frame}[fragile]
+\frametitle{Homogeneous vs heterogeneous variance structure}
+<<>>=
+ggplot(filter(varPlot, correlation=='correlated'), 
+  aes(x=month, y=ADAS11, group=id, color=group)) + 
+  geom_line(alpha=0.25) +
+  geom_smooth(aes(group = NULL), method = 'lm', size = 2) +
+  facet_wrap(~variance) +
+  ylim(0,50) +
+  scale_x_continuous(breaks=months) +
+  theme(legend.position=c(0.1,0.8))
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Uncorrelated vs correlated residuals}
+<<>>=
+ggplot(filter(varPlot, variance=='heterogeneous'), 
+  aes(x=month, y=ADAS11, group=id, color=group)) + 
+  geom_line(alpha=0.25) +
+  geom_smooth(aes(group = NULL), method = 'lm', size = 2) +
+  facet_wrap(~correlation) +
+  ylim(0,50) +
+  scale_x_continuous(breaks=months) +
+  theme(legend.position='none')
+@
+\end{frame}
+
+<<echo=FALSE, eval=FALSE>>=
+## pilot estimates are from a model fit to ADNI
+# library(ADNIMERGE) # available for loni.usc.edu
+# adni_mci_mmrm <- mutate(adnimerge, ADAS11.ch = ADAS11 - ADAS11.bl) %>%
+#   filter(M>0 & M<=18 & !is.na(ADAS11.ch)) %>%
+#   mutate(m = as.factor(M),
+#      visNo = as.numeric(m))
+#
+# with(adni_mci_mmrm, table(m, visNo))
+# fit_adni <- gls(ADAS11.ch ~ ADAS11.bl + scale(AGE, scale=FALSE) + m, data=adni_mci_mmrm,
+#   correlation = corSymm(form = ~ visNo | RID),
+#   weights = varIdent(form = ~ 1 | m) )
+# summary(fit_adni)
+# ggplot(adni_mci_mmrm, aes(x=M, y=ADAS11, group=RID)) +
+#    geom_line(alpha=0.25) +
+#    geom_smooth(aes(group = NULL), method = 'loess', size = 2) +
+#    scale_x_continuous(breaks=months, lim=c(0,18)) +
+#    ylab('ADAS11 change from baseline') +
+#    theme(legend.position=c(0.1, 0.85))
+@
+
+\begin{frame}[fragile]
+\frametitle{Let's simulate MMRM data from a hypothetical clinical trial$\ldots$}
+These are all estimates required:
+{\footnotesize
+<<echo=TRUE>>=
+Beta <- c(
+     'ADAS11.bl'= 0.05, # worse change for worse baseline
+         'age_c'= 0.03, # worse change for older at baseline (age mean centered)
+            'm6'= 0.11, # mean ADAS change at month 6 in pbo
+           'm12'= 0.37, # worsening at month 12 in pbo
+           'm18'= 1.44, # worsening at month 18 in pbo
+     'm6:active'=-0.20, # relative improvement at month 6 with treatment
+    'm12:active'=-0.70, # relative improvement at month 12 with treatment
+    'm18:active'=-1.60) # relative improvement at month 18 with treatment
+
+# other design parameters
+months <- c(0, 6, 12, 18)
+n <- 200 # per group
+attrition_rate <- 0.40/18 # approx per month
+
+# var-cov parameters
+SD <- 3.9                           # standard deviation scale parameter
+vv <- diag(c(1, 1.2, 1.4))          # hetergeneous variance weight matrix
+cc <- matrix(0.5, nrow=3, ncol=3)   # correlation matrix
+diag(cc) <- 1
+@
+\end{frame}
+
+<<>>=
+# set seed so that simulation is reproducible
+set.seed(20170714)
+
+# simulate subject specific data
+subjects <- data.frame(
+  id = 1:(2*n),
+  active = sample(c(rep(0,n), rep(1,n)), 2*n),
+  female = sample(0:1, 2*n, replace=TRUE),
+  age_c = rnorm(2*n, 0, 7.8), # mean centered age (mean 0 instead of, say, mean 75)
+  ADAS11.bl = round(rnorm(2*n, 10.7, 6.5), digits=0),
+  censor = rexp(2*n,rate=attrition_rate)) %>%
+  mutate(ADAS11.bl = ifelse(ADAS11.bl<0, 0, ADAS11.bl))
+  
+# simulate vector of correlated residuals
+resids <- as.numeric(t(rmvnorm(nrow(subjects), mean=rep(0,3), sigma=SD^2*vv%*%cc%*%vv)))
+
+# simulate data over time
+trial <- right_join(subjects,
+  expand.grid(id = 1:(2*n), month=months[-1])) %>%
+  arrange(id, month) %>%
+  mutate(residual = resids,
+    group = factor(active, 0:1, c('placebo', 'active')),
+    missing = ifelse(month>censor, 1, 0),
+    m = as.factor(month),
+    visNo = as.numeric(m)) %>%
+  arrange(id, month)
+
+# create visit indicators
+trial <- cbind(trial, model.matrix(~ -1+m, data = trial))
+
+# calculate the ADAS change scores with correlated residuals and 
+# round to nearest digit
+trial$ADAS11.ch <- round(
+  model.matrix(~ -1+ADAS11.bl+female+age_c+(m6+m12+m18)+(m6+m12+m18):active, data = trial)[, names(Beta)] %*% 
+  Beta + trial$residual, 
+  digits = 0
+)[,1]
+
+# data for MMRM
+trial_mmrm <- filter(trial, !missing)
+
+# data for cLDA
+trial_lda <- filter(trial, month==6) %>%
+  mutate(month = 0, ADAS11.ch=0) %>%
+  bind_rows(trial) %>%
+  mutate(ADAS11 = ADAS11.bl + ADAS11.ch, 
+    m = as.factor(month),
+    visNo = as.numeric(m),
+    m0 = ifelse(month==0, 1, 0)) %>%
+  arrange(id, month)
+@
+
+\begin{frame}[fragile]
+\frametitle{The pseudo MMRM data snapshot}
+{\footnotesize
+<<>>=
+head(select(trial_mmrm, -group, -missing, -m))
+@
+}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{The pseudo MMRM data}
+{\footnotesize
+<<spaghetti_plot>>=
+ggplot(trial_mmrm, aes(x=month, y=ADAS11.ch, group=id, color=group)) + 
+  geom_line(alpha=0.25) +
+  geom_smooth(aes(group = NULL), method = 'loess', size = 2) +
+  scale_x_continuous(breaks=months, lim=c(0,18)) +
+  ylab('ADAS11 change from baseline') +
+  theme(legend.position=c(0.1, 0.85))
+@
+}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Fitting MMRM in R}
+<<echo = TRUE>>=
+# Symmetric correlation, hetergeneous variance
+MMRMsymHet <- gls(ADAS11.ch ~ 
+  -1+ADAS11.bl+female+age_c+(m6+m12+m18)+(m6+m12+m18):active,
+  data=trial_mmrm, correlation = corSymm(form = ~ visNo | id),
+  weights = varIdent(form = ~ 1 | m) )
+
+# Compound Symmetric correlation, hetergeneous variance
+MMRMcompSymHet <- gls(ADAS11.ch ~ 
+  -1+ADAS11.bl+female+age_c+(m6+m12+m18)+(m6+m12+m18):active,
+  data=trial_mmrm, correlation = corCompSymm(form = ~ visNo | id),
+  weights = varIdent(form = ~ 1 | m) )
+
+# see ?corClasses and ?varClasses for more options
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{MMRM summaries in R}
+<<echo=TRUE, eval=FALSE>>=
+summary(MMRMsymHet)
+@
+<<>>=
+x <- summary(MMRMsymHet)
+print(summary(x$modelStruct), sigma = x$sigma,
+reEstimates = x$coef$random, verbose = verbose)
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{MMRM summaries in R}
+<<>>=
+cat('Coefficients:\n')
+xtTab <- as.data.frame(x$tTable)
+printCoefmat(x$tTable, eps=0.001, digits=3)
+# cat("\nStandardized residuals:\n")
+# print(x$residuals)
+cat("\n")
+cat("Residual standard error:", format(x$sigma),"\n")
+# cat("Degrees of freedom:", dd[["N"]],"total;",dd[["N"]] - dd[["p"]],
+#     "residual\n")
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Fitting cLDA in R}
+<<eval=FALSE>>=
+ggplot(trial_lda, aes(x=month, y=ADAS11, group=id, color=group)) + 
+  geom_line(alpha=0.25) +
+  geom_smooth(aes(group = NULL), method = 'loess', size = 2) +
+  scale_x_continuous(breaks=months, lim=c(0,18)) +
+  ylab('ADAS11 change from baseline') +
+  theme(legend.position=c(0.1, 0.85))
+@
+
+<<echo = TRUE>>=
+# Symmetric correlation, hetergeneous variance
+cLDAsymHet <- gls(ADAS11 ~ 
+  -1+female+age_c+m0+(m6+m12+m18)+(m6+m12+m18):active,
+  data=trial_lda, correlation = corSymm(form = ~ visNo | id),
+  weights = varIdent(form = ~ 1 | m) )
+
+# Compound Symmetric correlation, hetergeneous variance
+cLDAcompSymHet <- gls(ADAS11 ~ 
+  -1+female+age_c+m0+(m6+m12+m18)+(m6+m12+m18):active,
+  data=trial_lda, correlation = corCompSymm(form = ~ visNo | id),
+  weights = varIdent(form = ~ 1 | m) )
+
+# see ?corClasses and ?varClasses for more options
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{cLDA summaries in R}
+<<>>=
+x <- summary(cLDAsymHet)
+cat('cLDA Coefficients:\n')
+xtTab <- as.data.frame(x$tTable)
+printCoefmat(x$tTable, eps=0.001, digits=3)
+
+x <- summary(MMRMsymHet)
+cat('MMRM Coefficients:\n')
+xtTab <- as.data.frame(x$tTable)
+printCoefmat(x$tTable, eps=0.001, digits=3)
+@
+\end{frame}
+
+
+\section[Missingness]{Missingness}
+
+\begin{frame}[fragile]
+\frametitle{Missing Data: Notation}
+\begin{itemize}
+  \item Measurement: $Y_{ij}$
+  \item Missingness indicator:
+    \begin{displaymath}
+     R_{ij} = \left\{
+     \begin{array}{l}
+       1 \textrm{ if }Y_{ij}\textrm{ is observed}\\
+       0 \textrm{ otherwise}
+      \end{array} \right.
+    \end{displaymath}
+  \item Let $\mathbf{Y}_i = (Y_{i1},\ldots,Y_{in_i})' = (\mathbf{Y}_i^o, \mathbf{Y}_i^m)$, where
+     \begin{displaymath}
+     \left\{
+     \begin{array}{l}
+       \mathbf{Y}_i^o \textrm{ observed }Y_{ij}\\
+       \mathbf{Y}_i^m \textrm{ un-observed }Y_{ij}\\
+      \end{array} \right.
+    \end{displaymath}
+  \item $D_i$ is time of dropout
+  \item $\theta$ parameters that control $\mathbf{Y}_i$ (e.g. effects for treatment, gender, age, \ldots)
+  \item $\psi$ parameters that control $\mathbf{R}_i$ (e.g. treatment effect, $\mathbf{Y}_i^m$, \dots)
+\end{itemize}
+\let\thefootnote\relax\footnotetext{The notation is supposed to be a helpful shorthand. If it's not helpful, don't worry about it!}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Missing data frameworks}
+\begin{tabular}{ll}
+Full joint likelihood & $f(\mathbf{Y}_i, \mathbf{R}_i|X_i, \theta, \psi)$\\
+\underline{Missing \textbf{Completely} at Random} & $f(\mathbf{R}_i|X_i, \psi)$\\
+\underline{Missing at Random} & $f(\mathbf{R}_i|X_i, \mathbf{Y}_i^o, \psi)$\\
+\underline{Missing \textbf{Not} at Random} & $f(\mathbf{R}_i|X_i, \mathbf{Y}_i^o, \mathbf{Y}_i^m, \psi)$\\
+\end{tabular}
+
+\bigskip
+We'll unpack these a bit \ldots
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Missing \underline{Completely} at Random (MCAR)}
+$f(\mathbf{R}_i|X_i, \psi)$: Missingness (may) depend only on observed covariates ($X_i$)\\
+
+Appropriate methods:
+\begin{itemize}
+  \item Complete Case (e.g. ANCOVA) (?)
+  \item Last Observation Carried Forward (LOCF) (?)
+  \item Single imputation (?)
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Missing at Random (MAR)}
+$f(\mathbf{R}_i|X_i, \mathbf{Y}_i^o, \psi)$: Missingness (may) depend on observed covariates ($X_i$) and/or observed outcomes ($\mathbf{Y}_i^o$)\\
+
+Appropriate methods:
+\begin{itemize}
+  \item \textbf{Direct likelihood (e.g. mixed-effects models)!},
+  \item Multiple imputation
+  \item Weighted generalized estimating equations (WGEE)
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Missing \underline{Not} at Random (MNAR)}
+$f(\mathbf{R}_i|X_i, \mathbf{Y}_i^o, \mathbf{Y}_i^m, \psi)$: Missingness (may) depend on observed covariates ($X_i$), observed outcomes ($\mathbf{Y}_i^o$), and unobserved outcomes ($\mathbf{Y}_i^m$)\\
+
+Appropriate sensitivity analyses (?):
+\begin{itemize}
+  \item Selection models: $f(\mathbf{Y}_i|X_i, \theta)f(\mathbf{R}_i|X_i, \mathbf{Y}_i^o, \mathbf{Y}_i^m, \psi)$\\
+  \item pattern-mixture models: $f(\mathbf{Y}_i|X_i, \mathbf{R}_i, \theta)f(\mathbf{R}_i|X_i, \psi)$\\
+  \item shared-parameter models: $f(\mathbf{Y}_i|X_i, \mathbf{b}_i, \theta)f(\mathbf{R}_i|X_i, \mathbf{b}_i, \psi)$\\
+\end{itemize}
+
+(?) We can never completely rule out MNAR, since, if it exists, it depends on variables that we do \underline{not} observe.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Missing data: bottom line}
+\begin{itemize}
+  \item \underline{Missing Not at Random} is impossible to rule out. The best we can do is \emph{sensitivity analyses} or apply models that make strong untestable assumptions about missingness mechanism.
+  \item \underline{Missing Completely At Random} is an unrealistic and unnecessary assumption.
+  \item \underline{Missing at Random} is a more reasonable assumption, and we have reliable methods that are robust in this case.
+\end{itemize}
+Therefore it recommended to use direct likelihood (mixed-effects), multiple imputation, or WGEE; and \underline{avoid} complete case (ANCOVA), LOCF, or single imputation.
+\end{frame}
+
+\section{Multiple Imputation}
+
+\begin{frame}[fragile]
+\frametitle{Multiple imputation (MI)}
+Basic steps:
+\begin{enumerate}
+  \item Create multiple complete versions of the data with imputed plausible values
+  \item Analyze each complete version with standard methods (e.g. ANCOVA)
+  \item Combine the results
+\end{enumerate}
+Comments:
+\begin{itemize}
+  \item MI requires many more modeling decisions than direct likelihood methods (e.g. number of imputations, imputation methods, \ldots)
+  \item Usually reserved for \emph{sensitivity analyses}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{1. Create multiple complete versions}
+<<results = 'hide', echo = TRUE>>=
+# make wide version of data
+trial_wide_123_wide <- reshape(
+  trial_wide_123[, c('ID', 'Year', 'AGE.c', 'ICV.bl',
+  'Hippocampus.bl.c', 'APOE', 'Hippocampus', 'MMSE')],
+  idvar = 'ID', timevar = 'Year',
+  v.names = c('Hippocampus', 'MMSE'), direction = 'wide'
+)
+imp <- mice(trial_wide_123_wide[, c('ID', 'AGE.c', 'ICV.bl',
+  'Hippocampus.bl.c', 'APOE',
+  'Hippocampus.1', 'Hippocampus.2', 'Hippocampus.3')],
+  seed = 20140402)
+@
+<<echo = TRUE, size = 'tiny'>>=
+# first complete version
+head(complete(imp))
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{2. Analyze each complete version}
+<<echo = TRUE, size = 'tiny'>>=
+fits_mi <- with(data=imp, lm(ADAS13.18.3~APOE*Hippocampus.bl.c))
+summary(fits_mi)
+@
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{3. Combine the results}
+<<echo = TRUE, size = 'tiny'>>=
+summary(pool(fits_mi))[,1:7]
+@
+\end{frame}
+
+\section{Estimands}
+
+\begin{frame}[fragile]
+\frametitle{Estimands, Estimators, \& Estimates}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Efficacy vs Effectiveness}
+
+\end{frame}
+
+% 6. Missing Data, MAR, MNAR
+% 7. Simulate MNAR
+% 8. MI
+% 9. Delta method
+% 10. Post-treatment discontinuation??
+% 11. Estimands??
+
+% \begin{frame}[fragile]
+% \frametitle{MMRM Summary}
+% <<size = 'tiny'>>=
+% summary(mmrm_fit_apoe_age)
+% @
+% \end{frame}
+%
+% \begin{frame}[fragile]
+% \frametitle{MMRM \apoe$\,$ group contrast at each visit}
+% <<>>=
+% contrast(mmrm_fit_apoe_age,
+%   a = list(Y=factor(c(1,2,3)), APOE = 'e4+', Hippocampus.bl.c = 0, AGE.c = 0),
+%   b = list(Y=factor(c(1,2,3)), APOE = 'e4-', Hippocampus.bl.c = 0, AGE.c = 0)
+% )
+% @
+% \end{frame}
+%
+% \begin{frame}[fragile]
+% \frametitle{Plotting MMRM profiles}
+% <<trial_mmrm_profiles, echo = TRUE>>=
+% # get profile for each apoe group
+% apoe_n_mmrm_profile <- contrast(mmrm_fit_apoe_age,
+%   a = list(APOE = 'e4-', Y=factor(c(1,2,3)),
+%            Hippocampus.bl.c = 0, AGE.c = 0
+% ))
+% apoe_p_mmrm_profile <- contrast(mmrm_fit_apoe_age,
+%   a = list(APOE = 'e4+', Y=factor(c(1,2,3)),
+%            Hippocampus.bl.c = 0, AGE.c = 0
+% ))
+% # combine the profiles into one data.frame
+% pd_mmrm <- rbind(
+%   with(apoe_n_mmrm_profile,
+%     data.frame(APOE, Y, Estimate = Contrast, Lower, Upper)),
+%   with(apoe_p_mmrm_profile,
+%     data.frame(APOE, Y, Estimate = Contrast, Lower, Upper))
+% )
+% @
+% \end{frame}
+%
+% \begin{frame}[fragile]
+% \frametitle{Plotting MMRM profiles (shaded CIs)}
+% <<echo = TRUE, size = 'scriptsize'>>=
+% ggplot(pd_mmrm, aes(x = Y, y = Estimate, group = APOE, color = APOE))+
+%   geom_smooth(aes(ymin = Lower, ymax = Upper), stat = 'identity')
+% @
+% \end{frame}
+%
+% \begin{frame}[fragile]
+% \frametitle{Plotting profiles (error bar CIs)}
+% <<echo = TRUE, size = 'scriptsize'>>=
+% ggplot(pd_mmrm, aes(x = Y, y = Estimate, group = APOE, color = APOE))+
+%   geom_errorbar(aes(ymin = Lower, ymax = Upper),
+%     position = position_dodge(.1)) +
+%   geom_line(position = position_dodge(.1))
+% @
+% \end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Further reading}
+
+\begin{enumerate}
+  \item MMRM: Mallinkrodt
+  \item LDA vs cLDA
+  \item Cat vs cts time
+  \item delta method
+  \item MAR, MNAR
+  \item EMA guidance
+  \item Pinheiro and Bates
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Thank you!}
+
+\end{frame}
+
+\end{document}
