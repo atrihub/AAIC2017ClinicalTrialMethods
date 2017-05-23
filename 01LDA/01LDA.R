@@ -1,9 +1,12 @@
+options(digits = 3, stringsAsFactors = FALSE, width = 150)
+
+## ----eval = TRUE, echo = FALSE, message=FALSE, warning=FALSE-------------
 # required R packages
 library(Hmisc)
+library(multcomp)
 library(tidyverse)
 library(ggplot2)
 library(nlme)
-library(contrast)
 library(grid)
 library(gridExtra)
 
@@ -22,33 +25,39 @@ theme_table <- function(..., levs=2){
       axis.title = element_blank())
 } 
 
-# If you do not have them installed already, you will need to download them from CRAN via:
-install.packages(c('tidyverse', 'Hmisc', 'ggplot2', 'nlme', 'contrast', 'grid', 'gridExtra'))
+## ----eval = FALSE, echo = FALSE------------------------------------------
+## # If you do not have them installed already, you will need to download them from CRAN via:
+## install.packages(c('tidyverse', 'Hmisc', 'ggplot2', 'nlme', 'contrast', 'grid', 'gridExtra'))
 
+## ----echo=FALSE, eval=FALSE----------------------------------------------
+## ####################################################
+## ### pilot estimates are from a model fit to ADNI ###
+## ####################################################
+## # library(ADNIMERGE) # available for loni.usc.edu
+## fit_adni <- lme(ADAS11 ~ PTGENDER + scale(AGE,scale=FALSE) + M, data=adnimerge,
+##   random=~M|RID, subset = M<=24 & DX.bl=='AD', na.action=na.omit)
+## summary(fit_adni)
 
-# pilot estimates are from a model fit to ADNI
-# library(ADNIMERGE) # available for loni.usc.edu
-# fit_adni <- lme(ADAS11 ~ PTGENDER + AGE + M, data=adnimerge,
-#   random=~M|RID, subset = M<=18 & DX.bl=='AD', na.action=na.omit)
-
+## ----generate_data1, echo=TRUE-------------------------------------------
 # fixed effects parameters estimated from ADNI
 Beta <- c(
-   '(Intercept)'=19.60, # mean ADAS at baseline
-        'female'=-0.78, # better scores for females
-           'age'= 0.01, # worse per year of age at baseline
-         'month'= 0.40, # worse per month post baseline
+   '(Intercept)'=19.52, # mean ADAS at baseline
+        'female'=-0.29, # better scores for females
+         'age_c'= 0.06, # worse change for older at baseline (age mean centered)
+         'month'= 0.42, # worse per month post baseline
   'month:active'=-0.05) # improvement per month with treatment
 
 # standard deviations for random effects
-sigma_random_intercept <- 6.0
-sigma_random_slope <- 0.42
-sigma_residual <- 3.1
+sigma_random_intercept <- 6.1
+sigma_random_slope <- 0.38
+sigma_residual <- 3.3
 
 # other design parameters
 months <- c(0, 6, 12, 18)
 n <- 200 # per group
 attrition_rate <- 0.40/18 # approx per month
 
+## ------------------------------------------------------------------------
 # set seed so that simulation is reproducible
 set.seed(20170701)
 
@@ -57,10 +66,11 @@ subjects <- data.frame(
   id = 1:(2*n),
   active = sample(c(rep(0,n), rep(1,n)), 2*n),
   female = sample(0:1, 2*n, replace=TRUE),
-  age = rnorm(2*n, 75, 7.8),
+  age = rnorm(2*n, 75, 7.8), 
   censor = rexp(2*n,rate=attrition_rate),
   ran.intercept = rnorm(2*n, sd=sigma_random_intercept),
-  ran.slope     = rnorm(2*n, sd=sigma_random_slope))
+  ran.slope     = rnorm(2*n, sd=sigma_random_slope)) %>%
+  mutate(age_c = age-mean(age))
 
 # simulate data over time
 trial <- right_join(subjects, 
@@ -74,7 +84,7 @@ trial <- right_join(subjects,
 # calculate the ADAS scores with random effects and residuals and 
 # round to nearest digit in 0-70
 trial <- mutate(trial,
-  ADAS11 = (model.matrix(~ female+age+month+month:active, trial)[, names(Beta)] %*% Beta)[,1],
+  ADAS11 = (model.matrix(~ female+age_c+month+month:active, trial)[, names(Beta)] %*% Beta)[,1],
   ADAS11 = round(ADAS11 + ran.intercept + ran.slope*month + residual, digits = 0),
   ADAS11 = replace(ADAS11, ADAS11<0, 0),
   ADAS11 = replace(ADAS11, ADAS11>70, 70))
@@ -84,7 +94,7 @@ trial_obs <- filter(trial, !missing)
 
 # transfrom data from long to wide
 trial_wide <- trial_obs %>%
-  select(id, month, female, age, active, group, ADAS11) %>% 
+  select(id, month, female, age, age_c, active, group, ADAS11) %>% 
   mutate(month = paste0('ADAS11.m', month)) %>%
   spread(month, ADAS11)
 
@@ -94,15 +104,21 @@ trial_mmrm <- right_join(
   filter(trial_obs, month>0)) %>%
   mutate(ADAS11.ch = ADAS11 - ADAS11.m0)
 
+## ------------------------------------------------------------------------
 head(select(trial_obs, -group, -missing))
 
-print(summary(group ~ female + age + ADAS11, data = trial_obs, subset = month == 0, method='reverse'), prmsd=TRUE)
+## ----results='asis'------------------------------------------------------
+latex(summary(group ~ female + age + ADAS11, data = trial_obs, subset = month == 0, 
+  method='reverse'), prmsd=TRUE, file='')
 
+## ----spaghetti_plot------------------------------------------------------
 ggplot(trial_obs, aes(x=month, y=ADAS11, group=id, color=group)) + 
   geom_line(alpha=0.25) +
   geom_smooth(aes(group = NULL), method = 'lm', size = 2) +
-  scale_x_continuous(breaks=months)
+  scale_x_continuous(breaks=months) +
+  theme(legend.position=c(0.1, 0.85))
 
+## ------------------------------------------------------------------------
 summaryTable <- trial_obs %>% 
   group_by(group, month) %>%
   summarise(
@@ -115,6 +131,7 @@ summaryTable <- trial_obs %>%
     max=max(ADAS11))
 print(as.data.frame(summaryTable), row.names=FALSE)
 
+## ----meanplot------------------------------------------------------------
 p <- ggplot(summaryTable, aes(x=month, y=mean, color=group)) +
   geom_line() +
   geom_errorbar(aes(min=lower95, max=upper95), position=position_dodge(0.2), width=0) +
@@ -124,6 +141,7 @@ p <- ggplot(summaryTable, aes(x=month, y=mean, color=group)) +
 countTab <- ggplot(summaryTable, aes(x=month, y=group, label=n)) + geom_text() + theme_table()
 grid.draw(arrangeGrob(p,countTab,heights=c(3,1)))
 
+## ------------------------------------------------------------------------
 chsummaryTable <- trial_mmrm %>% 
   group_by(group, month) %>%
   summarise(
@@ -142,6 +160,7 @@ chsummaryTable <- bind_rows(
 
 print(as.data.frame(chsummaryTable), row.names=FALSE)
 
+## ----meanchplot----------------------------------------------------------
 p <- ggplot(chsummaryTable, aes(x=month, y=mean, color=group)) +
   geom_line() +
   geom_errorbar(aes(min=lower95, max=upper95), position=position_dodge(0.2), width=0) +
@@ -150,6 +169,7 @@ p <- ggplot(chsummaryTable, aes(x=month, y=mean, color=group)) +
   theme(legend.position=c(0.1, 0.75))
 grid.draw(arrangeGrob(p,countTab,heights=c(3,1)))
 
+## ------------------------------------------------------------------------
 m1 <- subset(chsummaryTable, group=='active' & month==18)[['mean']]
 m2 <- subset(chsummaryTable, group=='placebo' & month==18)[['mean']]
 n1 <- subset(chsummaryTable, group=='active' & month==18)[['n']]
@@ -160,9 +180,11 @@ s <- sqrt(((n1-1)*sd1^2 + (n2-1)*sd2^2)/(n1+n2-2))
 tt <- (m2-m1)/(s*sqrt(1/n2 + 1/n1)) 
 DF <- n1+n2-2
 
+## ----echo=FALSE----------------------------------------------------------
 print(t.test(ADAS11.ch ~ group, data = trial_mmrm, subset = month==18, 
   var.equal=TRUE), digits = 6)
 
+## ------------------------------------------------------------------------
 x <- seq(-5, 5, by = 0.01)
 dens <- data.frame(
 	x        =  x,
@@ -183,6 +205,7 @@ ggplot(dens, aes(x=x, y=density)) + geom_line() +
   annotate('text', x=-1.96, y=0.4, label='x=-1.96') +
   annotate('text', x=1.96, y=0.4, label='x=1.96')
 
+## ----fig.show='animate'--------------------------------------------------
 lmfit <- lm(ADAS11.m18 ~ ADAS11.m0, data = trial_wide)
 Fitted <- predict(lmfit)
 
@@ -210,19 +233,25 @@ p <- ggplot(filter(trial_wide, !is.na(ADAS11.m18)), aes(x=ADAS11.m0, y=ADAS11.m1
   ylim(range(trial_wide$ADAS11.m18, na.rm=TRUE))
 print(p)
 
+## ----ancovai, echo = FALSE, size = 'scriptsize'--------------------------
 summary(lm(ADAS11.ch ~ active + ADAS11.m0, data = trial_mmrm))
 
+## ----echo = FALSE, size = 'scriptsize'-----------------------------------
 center <- function(x) scale(x, scale = FALSE)
 
+## ----ancovaii, echo = FALSE, size = 'scriptsize'-------------------------
 summary(lm(ADAS11.ch ~ active*center(ADAS11.m0), data = trial_mmrm))
 
-summary(lm(ADAS11.ch ~ active*center(ADAS11.m0) + female + age, data = trial_mmrm))
+## ----ancovaii2cov, echo = FALSE, size = 'scriptsize'---------------------
+summary(lm(ADAS11.ch ~ active*center(ADAS11.m0) + female + age_c, data = trial_mmrm))
 
+## ----trial_stage1_plot, echo = FALSE-------------------------------------
 ggplot(subset(trial, id %in% 1:4),
   aes(x=month, y=ADAS11, group = id, color = group)) +
   stat_smooth(method = 'lm') + geom_line() + geom_point() +
   facet_wrap(~id)
 
+## ----trial_fit_stage1, eval = TRUE, echo = FALSE, size = 'scriptsize'----
 trial_stage1 <- as.data.frame(do.call(rbind, lapply(unique(trial$id),
   function(i){
     fit <- lm(ADAS11 ~ month,
@@ -231,73 +260,65 @@ trial_stage1 <- as.data.frame(do.call(rbind, lapply(unique(trial$id),
 })))
 trial_stage1 <- right_join(trial_stage1,
   filter(trial, month == 0) %>% 
-    select(id, active, group, age, female))
+    select(id, active, group, age_c, female))
 head(trial_stage1)
 
+## ----size = 'scriptsize'-------------------------------------------------
 summary(lm(ADAS11 ~ month, data = trial_obs, subset = id == 1))
 
+## ----trial_plot_stage2---------------------------------------------------
 ggplot(trial_stage1,
   aes(x=group, y=beta.month, group = group, color = group)) +
   geom_boxplot(alpha = 0.25) + 
   ylab('ADAS11 change per month')
 
-summary(lm(beta.month ~ female + age + active, data = trial_stage1))
+## ----trial_stage2_fit----------------------------------------------------
+summary(lm(beta.month ~ female + age_c + active, data = trial_stage1))
 
+## ----trial_lme, size = 'tiny'--------------------------------------------
 fit_lme <- lme(ADAS11 ~ month + month:active, data = trial_obs, random = ~month|id)
 summary(fit_lme)
 
-fit_lme_cov <- lme(ADAS11 ~ age + female + month + month:active, data = trial_obs, random = ~month|id)
+## ----trial_lme_age, size = 'tiny'----------------------------------------
+fit_lme_cov <- lme(ADAS11 ~ age_c + female + month + month:active, data = trial_obs, random = ~month|id)
 summary(fit_lme_cov)
 
-# Contrast function does not like 'month:active' term, 
-# so we create an alternative coding and fit an identical
-# model which uses 'month.active' instead
-# We also mean center the covariates
-trial_obs <- mutate(trial_obs, 
-  month.active = month*active,
-  age.c = center(age),
-  female.c = center(female))
-fit_lme_cov_plot <- lme(ADAS11 ~ age.c + female.c + month + month.active, data = trial_obs, random = ~month|id)
+## ----trial_lme_rcode, eval = FALSE, echo = TRUE--------------------------
+## lme(ADAS11 ~ month + month:active,
+##   data = trial_obs, random = ~month|id)
+## 
+## lme(ADAS11 ~ age_c + female + month + month:active,
+##   data = trial_obs, random = ~month|id)
 
-# get profile for each group
-act_profile <- contrast(fit_lme_cov_plot,
-  a = list(age.c = 0,
-           female.c = 0,
-           month = seq(0,18,6),
-           month.active = seq(0,18,6)
-))
-pbo_profile <- contrast(fit_lme_cov_plot,
-  a = list(age.c = 0,
-           female.c = 0,
-           month = seq(0,18,6),
-           month.active = 0
-))
+## ----trial_lme_profiles, echo = FALSE, size = 'scriptsize'---------------
+plotData0 <- filter(trial_obs, !duplicated(paste(month, active))) %>%
+  arrange(active, month) %>%
+  mutate(female = 1, age_c=0) %>%
+  select(-age, -censor, -residual, -ADAS11)
 
-# combine the profiles into one data.frame
-pd <- rbind(
-  filter(with(act_profile,
-    data.frame(active=1, month.active, month, Estimate = Contrast, Lower, Upper)),
-  month.active == month),
-  with(pbo_profile,
-    data.frame(active=0, month.active, month, Estimate = Contrast, Lower, Upper))
-)
+plotMatrix <- model.matrix(~ age_c + female + month + month:active, data = plotData0)
 
-pd$group <- factor(pd$active, 0:1, c('placebo', 'active'))
+plotData <- bind_cols(plotData0, 
+  as.data.frame(confint(glht(fit_lme_cov, linfct = plotMatrix))$confint))
 
-print(pd, row.names=FALSE)
 
-p <- ggplot(pd, aes(x = month, y = Estimate, group = group))+
+## ----echo = FALSE, size = 'scriptsize'-----------------------------------
+print(select(plotData, group, month, Estimate, lwr, upr), row.names=FALSE)
+
+## ----echo = FALSE, size = 'scriptsize'-----------------------------------
+p <- ggplot(plotData, aes(x = month, y = Estimate, group = group))+
   geom_line(aes(color=group)) +
-  geom_ribbon(aes(ymin = Lower, ymax = Upper, fill=group), alpha=0.25) +
+  geom_ribbon(aes(ymin = lwr, ymax = upr, fill=group), alpha=0.25) +
   ylim(c(15,30)) +
   scale_x_continuous(breaks=months) +
   ylab('Mean ADAS (95% CI)') +
   theme(legend.position=c(0.1, 0.75))
 grid.draw(arrangeGrob(p,countTab,heights=c(3,1)))
 
-p <- ggplot(pd, aes(x = month, y = Estimate, group = group, color=group))+
+## ----echo = FALSE, size = 'scriptsize'-----------------------------------
+p <- ggplot(plotData, aes(x = month, y = Estimate, group = group, color=group))+
   geom_line() +
-  geom_errorbar(aes(ymin = Lower, ymax = Upper), width=0, position=position_dodge(0.2)) +
+  geom_errorbar(aes(ymin = lwr, ymax = upr), width=0, position=position_dodge(0.2)) +
   ylab('Mean ADAS (95% CI)') +
   ylim(c(15,30)) +
   scale_x_continuous(breaks=months) +
@@ -305,6 +326,7 @@ p <- ggplot(pd, aes(x = month, y = Estimate, group = group, color=group))+
   theme(legend.position=c(0.1, 0.75))
 grid.draw(arrangeGrob(p,countTab,heights=c(3,1)))
 
+## ----varPar, echo=FALSE--------------------------------------------------
 # simulate data with different variance parameters
 varPar <- expand.grid(
   sigma_random_intercept = c(2, 10),
@@ -324,7 +346,8 @@ varPlot <- do.call(rbind, lapply(1:nrow(varPar), function(i){
     sigma_random_slope = varPar[i, 'sigma_random_slope'],
     sigma_residual = varPar[i, 'sigma_residual'],
     ran.intercept = rnorm(2*n, sd=varPar[i, 'sigma_random_intercept']),
-    ran.slope     = rnorm(2*n, sd=varPar[i, 'sigma_random_slope']))
+    ran.slope     = rnorm(2*n, sd=varPar[i, 'sigma_random_slope'])) %>%
+    mutate(age_c = age - mean(age))
 
   trial <- right_join(subjects, 
     expand.grid(id = 1:(2*n), month=months)) %>%
@@ -335,7 +358,7 @@ varPlot <- do.call(rbind, lapply(1:nrow(varPar), function(i){
     arrange(id, month) %>%
     filter(!missing)
   trial$ADAS11 <- round(
-    model.matrix(~ female+age+month+month:active, data = trial)[, names(Beta)] %*% 
+    model.matrix(~ female+age_c+month+month:active, data = trial)[, names(Beta)] %*% 
     Beta +
     with(trial, ran.intercept + ran.slope*month + residual), 
     digits = 0
@@ -343,6 +366,7 @@ varPlot <- do.call(rbind, lapply(1:nrow(varPar), function(i){
   trial
 }))
 
+## ------------------------------------------------------------------------
 ggplot(filter(varPlot, sigma_random_intercept==2 & sigma_random_slope==0.2), 
   aes(x=month, y=ADAS11, group=id, color=group)) + 
   geom_line(alpha=0.25) +
@@ -352,6 +376,7 @@ ggplot(filter(varPlot, sigma_random_intercept==2 & sigma_random_slope==0.2),
   scale_x_continuous(breaks=months) +
   theme(legend.position=c(0.1,0.8))
 
+## ------------------------------------------------------------------------
 ggplot(filter(varPlot, sigma_residual==2 & sigma_random_slope==0.2), 
   aes(x=month, y=ADAS11, group=id, color=group)) + 
   geom_line(alpha=0.25) +
@@ -361,6 +386,7 @@ ggplot(filter(varPlot, sigma_residual==2 & sigma_random_slope==0.2),
   scale_x_continuous(breaks=months) +
   theme(legend.position=c(0.6,0.8))
 
+## ------------------------------------------------------------------------
 ggplot(filter(varPlot, sigma_residual==2 & sigma_random_intercept==2), 
   aes(x=month, y=ADAS11, group=id, color=group)) + 
   geom_line(alpha=0.25) +
@@ -370,8 +396,10 @@ ggplot(filter(varPlot, sigma_residual==2 & sigma_random_intercept==2),
   scale_x_continuous(breaks=months) +
   theme(legend.position=c(0.1,0.8))
 
+## ----trial_lme_apoe_int, size = 'tiny'-----------------------------------
 fit_lme_int <- update(fit_lme, random = ~1|id)
 summary(fit_lme_int)
 
+## ----trial_lme_apoe_int_vs_slope, size = 'footnotesize', echo = TRUE-----
 anova(fit_lme_int, fit_lme)
 
